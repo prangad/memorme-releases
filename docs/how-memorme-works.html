@@ -1,0 +1,1317 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>How MemorMe Works</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Pictures you can tap: how your phone reaches your photos at home through a locked tunnel, what happens on your computer, and how three copies keep them safe.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* A night scene at story-book scale: the house on the left, the phone on the right, the switchboard
+     above, the tunnel between; a reading panel beside it (below it on a phone). One dark look, MemorMe's. */
+  :root {
+    --night: #100b17;
+    --night-2: #1a1325;
+    --plum: #2c213d;
+    --plum-line: #433559;
+    --lilac: #9d7ae0;
+    --gold: #d9aa45;
+    --gold-light: #f0cc78;
+    --gold-pale: #f7e2a4;
+    --ink: #f0ebf6;
+    --ink-2: #cfc5de;
+    --muted: #9d91b2;
+    --good: #4cc38a;
+    --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --sans: 'Source Sans 3', 'Segoe UI', system-ui, -apple-system, Arial, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    background: var(--night);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding-block: 28px 40px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  header { display: grid; gap: 6px; margin-bottom: 18px; }
+  .wordmark { font-family: var(--serif); font-weight: 600; font-size: 22px; }
+  .wordmark span { color: var(--gold-light); }
+  h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(28px, 4.2vw, 44px); line-height: 1.08; margin: 0; text-wrap: balance; }
+  h1 em { font-style: normal; color: var(--gold-light); }
+  .lead { color: var(--ink-2); max-width: 62ch; margin: 4px 0 0; }
+
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+  @media (max-width: 960px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+
+  .scene-box {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid var(--plum-line);
+    background: var(--night-2);
+  }
+  svg.scene { display: block; width: 100%; height: auto; max-width: 100%; }
+  .modes {
+    position: absolute; left: 12px; top: 12px;
+    display: flex; gap: 4px; padding: 4px;
+    background: rgba(16, 11, 23, 0.82); border: 1px solid var(--plum-line); border-radius: 999px;
+  }
+  @media (max-width: 600px) {
+    .modes { position: static; margin: 8px; justify-content: center; }
+  }
+  .modes button {
+    font: 600 14px/1 var(--sans); color: var(--ink-2); background: transparent; border: 0;
+    padding: 8px 12px; border-radius: 999px; cursor: pointer;
+  }
+  .modes button[aria-pressed="true"] { background: var(--gold); color: var(--night); }
+  .modes button:focus-visible, .hot:focus-visible, .panel button:focus-visible, .story button:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 2px; }
+
+  /* hotspots */
+  .hot { cursor: pointer; outline: none; }
+  .hot .halo { fill: transparent; stroke: var(--gold-light); stroke-width: 2; opacity: 0; transition: opacity .2s; }
+  .hot:hover .halo, .hot:focus-visible .halo, .hot.is-on .halo { opacity: .9; }
+  .pin circle.ring { fill: var(--gold); stroke: var(--night); stroke-width: 2; }
+  .pin text { font: 700 15px var(--sans); fill: var(--night); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .pin .pulse { fill: none; stroke: var(--gold-light); stroke-width: 2; transform-box: fill-box; transform-origin: center; animation: pulse 2.4s ease-out infinite; }
+  @keyframes pulse { 0% { transform: scale(1); opacity: .9 } 100% { transform: scale(2.4); opacity: 0 } }
+  .label { font: 600 15px var(--sans); fill: var(--ink-2); pointer-events: none; }
+  .label.small { font-size: 13px; fill: var(--muted); }
+  .twinkle { animation: twinkle 3.6s ease-in-out infinite; }
+  @keyframes twinkle { 50% { opacity: .25 } }
+  .blink { animation: blink 1.4s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: .2 } }
+  .flow { stroke-dasharray: 2 16; animation: flow 1.1s linear infinite; }
+  @keyframes flow { to { stroke-dashoffset: -18 } }
+  .cord-path { transition: opacity .5s; }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .tabs button {
+    font: 600 15px/1 var(--sans); color: var(--ink-2); background: var(--night-2);
+    border: 1px solid var(--plum-line); border-radius: 999px; padding: 10px 16px; cursor: pointer;
+  }
+  .tabs button[aria-selected="true"] { background: var(--plum); color: var(--gold-light); border-color: var(--gold); }
+  .tabs button:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 2px; }
+  .spin { transform-box: view-box; transform-origin: 110px 105px; animation: spin 14s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg) } }
+
+  /* reading panel */
+  .panel {
+    background: var(--night-2);
+    border: 1px solid var(--plum-line);
+    border-top: 2px solid var(--gold);
+    border-radius: 16px;
+    padding: 20px 20px 18px;
+    min-width: 0;
+  }
+  .panel .eyebrow { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+  .panel h2 { font-family: var(--serif); font-weight: 500; font-size: 25px; line-height: 1.15; margin: 6px 0 10px; text-wrap: balance; }
+  .panel p { margin: 0 0 .8em; color: var(--ink-2); }
+  .panel ul { margin: 0 0 .8em; padding-left: 1.1em; color: var(--ink-2); }
+  .panel li { margin: .25em 0; }
+  .panel li::marker { color: var(--gold); }
+  .panel strong { color: var(--ink); }
+  .seen { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 12px; }
+  .seen div { border: 1px solid var(--plum-line); border-radius: 10px; padding: 8px 10px; font-size: 15px; color: var(--ink-2); }
+  .seen b { display: block; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 2px; }
+  .seen .yes b { color: var(--good); }
+  .seen .no b { color: var(--gold-light); }
+  .things { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+  .things button {
+    font: 600 14px/1.2 var(--sans); color: var(--ink); background: var(--plum);
+    border: 1px solid var(--plum-line); border-radius: 999px; padding: 7px 12px; cursor: pointer;
+  }
+  .things button:hover { border-color: var(--gold); }
+  .back { font: 600 14px var(--sans); background: none; border: 0; color: var(--gold-light); padding: 0; cursor: pointer; margin-top: 4px; }
+  svg.cross { display: block; width: 100%; max-width: 320px; height: auto; margin: 4px auto 10px; }
+  .cross text { font: 600 13px var(--sans); fill: var(--ink-2); }
+
+  /* the story */
+  .story {
+    margin-top: 14px;
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: center;
+    background: var(--night-2); border: 1px solid var(--plum-line); border-radius: 16px; padding: 12px 14px;
+  }
+  @media (max-width: 560px) { .story { grid-template-columns: minmax(0, 1fr); } }
+  .story button.play {
+    font: 700 15px var(--sans); color: var(--night); background: var(--gold); border: 0; border-radius: 999px;
+    padding: 10px 16px; cursor: pointer; white-space: nowrap;
+  }
+  .story .say { min-width: 0; }
+  .story .say b { display: block; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+  .story .say span { color: var(--ink); }
+  .dots { display: flex; gap: 6px; }
+  .dots button { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--gold); background: transparent; padding: 0; cursor: pointer; }
+  .dots button[aria-current="step"] { background: var(--gold); }
+  .nav { display: flex; gap: 6px; align-items: center; }
+  .nav button.step { font: 600 14px var(--sans); color: var(--ink); background: var(--plum); border: 1px solid var(--plum-line); border-radius: 999px; padding: 7px 12px; cursor: pointer; }
+  .nav button.step:disabled { opacity: .4; cursor: default; }
+  footer { margin-top: 18px; color: var(--muted); font-size: 14px; max-width: 75ch; }
+
+  /* small living details: chimney smoke, a flickering lamp, moths, a blinking operator, rain */
+  .smoke { transform-box: fill-box; transform-origin: center; animation: smoke 7s ease-in-out infinite; }
+  @keyframes smoke { 0% { transform: translate(0, 8px) scale(.7); opacity: 0 } 25% { opacity: .45 } 100% { transform: translate(10px, -26px) scale(1.4); opacity: 0 } }
+  .flicker { animation: flicker 5s linear infinite; }
+  @keyframes flicker { 0%, 88%, 93%, 100% { opacity: .7 } 90% { opacity: .5 } 91.5% { opacity: .66 } }
+  .moth { transform-box: fill-box; transform-origin: center; animation: moth 2.6s ease-in-out infinite; }
+  @keyframes moth { 0%, 100% { transform: translate(0, 0) } 25% { transform: translate(5px, -4px) } 50% { transform: translate(-2px, -7px) } 75% { transform: translate(-5px, 1px) } }
+  .wink { transform-box: fill-box; transform-origin: center; animation: wink 5.5s ease-in-out infinite; }
+  @keyframes wink { 0%, 94%, 100% { transform: scaleY(1) } 96% { transform: scaleY(.1) } }
+  .rain { animation: rain 1.3s linear infinite; }
+  @keyframes rain { 0% { transform: translateY(-4px); opacity: 0 } 30% { opacity: .9 } 100% { transform: translateY(10px); opacity: 0 } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pin .pulse, .twinkle, .blink, .flow, .spin, .smoke, .flicker, .moth, .wink, .rain { animation: none; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="wordmark">Memor<span>Me</span></div>
+    <h1>How MemorMe works, <em>in pictures</em></h1>
+    <p class="lead">Three little scenes: how your phone reaches your photos, what happens at home, and how three copies keep them safe. Tap anything to see more.</p>
+  </header>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#1b1230"/><stop offset="1" stop-color="#100b17"/>
+            </linearGradient>
+            <radialGradient id="moonglow" cx=".5" cy=".5" r=".5">
+              <stop offset="0" stop-color="#f7e2a4" stop-opacity=".35"/><stop offset="1" stop-color="#f7e2a4" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="lamp" cx=".5" cy="0" r="1">
+              <stop offset="0" stop-color="#f7e2a4" stop-opacity=".45"/><stop offset="1" stop-color="#f7e2a4" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#5b33a8"/><stop offset="1" stop-color="#2c213d"/>
+            </linearGradient>
+            <radialGradient id="warm" cx=".5" cy=".5" r=".5">
+              <stop offset="0" stop-color="#f0cc78" stop-opacity=".22"/><stop offset="1" stop-color="#f0cc78" stop-opacity="0"/>
+            </radialGradient>
+            <!-- roof shingles: rows of rounded tiles, laid over a roof at low opacity -->
+            <pattern id="shingles" width="16" height="16" patternUnits="userSpaceOnUse">
+              <path d="M0 4 a8 5 0 0 0 16 0 M-8 12 a8 5 0 0 0 16 0 M8 12 a8 5 0 0 0 16 0" fill="none" stroke="#100b17" stroke-width="1.4"/>
+            </pattern>
+          </defs>
+</svg>
+  <div class="stage">
+    <div>
+      <div class="tabs" role="tablist" aria-label="Scenes">
+        <button type="button" role="tab" id="tab-connect" aria-controls="scene-connect" aria-selected="true">Your phone</button>
+        <button type="button" role="tab" id="tab-home" aria-controls="scene-home" aria-selected="false" tabindex="-1">Inside your home</button>
+        <button type="button" role="tab" id="tab-copies" aria-controls="scene-copies" aria-selected="false" tabindex="-1">Three copies</button>
+      </div>
+      <div class="scene-box">
+        <div class="modes" id="modes" role="group" aria-label="How the tunnel runs">
+          <button type="button" id="mode-direct" aria-pressed="true">Straight line</button>
+          <button type="button" id="mode-relay" aria-pressed="false">Through the switchboard</button>
+        </div>
+        <svg class="scene" id="scene-connect" viewBox="0 0 1200 640" role="img" aria-labelledby="scene-title">
+          <title id="scene-title">A house with a computer, a person on a bench with a phone, and Cloudflare's switchboard in the sky, joined by a glowing locked tunnel</title>
+
+          <!-- sky -->
+          <rect width="1200" height="640" fill="url(#sky)"/>
+          <circle cx="1040" cy="90" r="120" fill="url(#moonglow)"/>
+          <!-- a crescent moon, one shape, its glow behind it -->
+          <path d="M 1036.8 56.2 A 34 34 0 1 0 1070 106 A 30 30 0 0 1 1036.8 56.2 Z" fill="#f7e2a4"/>
+          <g fill="#d9aa45" opacity=".35"><circle cx="1017" cy="97" r="3.6"/><circle cx="1027" cy="113" r="2.6"/><circle cx="1015" cy="80" r="2"/></g>
+          <g fill="#fff">
+            <circle class="twinkle" cx="80" cy="60" r="2"/><circle cx="160" cy="120" r="1.5" opacity=".6"/>
+            <circle class="twinkle" cx="260" cy="40" r="2" style="animation-delay:1s"/><circle cx="380" cy="90" r="1.5" opacity=".5"/>
+            <circle class="twinkle" cx="460" cy="30" r="2" style="animation-delay:2s"/><circle cx="760" cy="40" r="1.5" opacity=".6"/>
+            <circle class="twinkle" cx="840" cy="110" r="2" style="animation-delay:.5s"/><circle cx="930" cy="30" r="1.5" opacity=".5"/>
+            <circle class="twinkle" cx="1150" cy="170" r="2" style="animation-delay:1.6s"/><circle cx="700" cy="250" r="1.2" opacity=".4"/>
+            <circle cx="40" cy="150" r="1" opacity=".5"/><circle cx="210" cy="90" r="1" opacity=".4"/><circle cx="330" cy="150" r="1.1" opacity=".45"/>
+            <circle cx="420" cy="60" r=".9" opacity=".5"/><circle cx="800" cy="80" r="1" opacity=".4"/><circle cx="880" cy="20" r="1.1" opacity=".5"/>
+            <circle cx="980" cy="200" r="1" opacity=".35"/><circle cx="1180" cy="40" r="1.2" opacity=".5"/><circle cx="1110" cy="230" r=".9" opacity=".35"/>
+            <circle cx="520" cy="290" r="1" opacity=".3"/><circle cx="780" cy="300" r="1" opacity=".3"/>
+          </g>
+          <g fill="#f7e2a4">
+            <path class="twinkle" d="M120 30 l1.6 4.4 4.4 1.6 -4.4 1.6 -1.6 4.4 -1.6 -4.4 -4.4 -1.6 4.4 -1.6 z" style="animation-delay:.8s"/>
+            <path class="twinkle" d="M350 20 l1.3 3.7 3.7 1.3 -3.7 1.3 -1.3 3.7 -1.3 -3.7 -3.7 -1.3 3.7 -1.3 z" style="animation-delay:2.4s" opacity=".8"/>
+            <path class="twinkle" d="M900 150 l1.4 4 4 1.4 -4 1.4 -1.4 4 -1.4 -4 -4 -1.4 4 -1.4 z" style="animation-delay:1.3s" opacity=".85"/>
+          </g>
+          <!-- hills -->
+          <path d="M0 560 C 200 500, 380 540, 560 520 C 760 498, 940 540, 1200 505 L1200 640 L0 640 Z" fill="#221930"/>
+          <path d="M0 600 C 240 570, 520 605, 760 585 C 960 570, 1080 590, 1200 580 L1200 640 L0 640 Z" fill="#1a1325"/>
+          <!-- grass tufts and a shrub by the house -->
+          <g fill="none" stroke="#2c213d" stroke-width="2" stroke-linecap="round">
+            <path d="M450 526 q-2 -6 -6 -8 M450 526 q0 -7 1 -11 M450 526 q2 -5 6 -7"/>
+            <path d="M640 515 q-2 -6 -6 -8 M640 515 q0 -7 1 -11 M640 515 q2 -5 6 -7"/>
+            <path d="M1070 518 q-2 -6 -6 -8 M1070 518 q0 -7 1 -11 M1070 518 q2 -5 6 -7"/>
+            <path d="M200 589 q-2 -6 -6 -8 M200 589 q0 -7 1 -11 M200 589 q2 -5 6 -7" stroke="#2c213d"/>
+            <path d="M30 598 q-2 -6 -6 -8 M30 598 q0 -7 1 -11 M30 598 q2 -5 6 -7"/>
+            <path d="M1110 584 q-2 -6 -6 -8 M1110 584 q0 -7 1 -11 M1110 584 q2 -5 6 -7"/>
+            <path d="M1180 582 q-2 -5 -5 -7 M1180 582 q0 -6 1 -9 M1180 582 q2 -4 5 -6"/>
+          </g>
+
+          <!-- the wire: drawn under everything that sits on it -->
+          <path id="note-a" d="M 930 382 C 975 240, 770 170, 640 182" fill="none"/>
+          <path id="note-b" d="M 560 182 C 440 170, 300 222, 236 346" fill="none"/>
+          <path d="M 930 382 C 975 240, 770 170, 640 182 M 560 182 C 440 170, 300 222, 236 346" fill="none" stroke="#9d91b2" stroke-width="2" stroke-dasharray="3 7" opacity=".55"/>
+
+          <g id="cord-direct" class="cord-path">
+            <path d="M 270 440 C 470 640, 760 640, 948 440" fill="none" stroke="#a8771f" stroke-width="26" stroke-linecap="round"/>
+            <path d="M 270 440 C 470 640, 760 640, 948 440" fill="none" stroke="#f0cc78" stroke-width="20" stroke-linecap="round"/>
+            <path d="M 270 440 C 470 640, 760 640, 948 440" fill="none" stroke="#9d7ae0" stroke-width="12" stroke-linecap="round"/>
+            <path d="M 270 440 C 470 640, 760 640, 948 440" fill="none" stroke="#2c213d" stroke-width="7" stroke-linecap="round"/>
+            <path class="flow" d="M 270 440 C 470 640, 760 640, 948 440" fill="none" stroke="#f7e2a4" stroke-width="4" stroke-linecap="round"/>
+          </g>
+          <g id="cord-relay" class="cord-path" opacity="0">
+            <path d="M 270 440 C 300 250, 450 200, 560 205 L 640 205 C 750 200, 920 250, 948 440" fill="none" stroke="#a8771f" stroke-width="26" stroke-linecap="round"/>
+            <path d="M 270 440 C 300 250, 450 200, 560 205 L 640 205 C 750 200, 920 250, 948 440" fill="none" stroke="#f0cc78" stroke-width="20" stroke-linecap="round"/>
+            <path d="M 270 440 C 300 250, 450 200, 560 205 L 640 205 C 750 200, 920 250, 948 440" fill="none" stroke="#9d7ae0" stroke-width="12" stroke-linecap="round"/>
+            <path d="M 270 440 C 300 250, 450 200, 560 205 L 640 205 C 750 200, 920 250, 948 440" fill="none" stroke="#2c213d" stroke-width="7" stroke-linecap="round"/>
+            <path class="flow" d="M 270 440 C 300 250, 450 200, 560 205 L 640 205 C 750 200, 920 250, 948 440" fill="none" stroke="#f7e2a4" stroke-width="4" stroke-linecap="round"/>
+          </g>
+          <path id="track-direct" d="M 270 440 C 470 640, 760 640, 948 440" fill="none"/>
+          <path id="track-relay" d="M 270 440 C 300 250, 450 200, 560 205 L 640 205 C 750 200, 920 250, 948 440" fill="none"/>
+          <g id="parcels"></g>
+
+          <!-- the cord's own hotspot: a wide invisible band along it -->
+          <g class="hot" id="hot-cord" data-key="cord" tabindex="0" role="button" aria-label="The locked tunnel">
+            <path id="cord-hit" d="M 270 440 C 470 640, 760 640, 948 440" fill="none" stroke="transparent" stroke-width="44" pointer-events="stroke"/>
+            <g class="pin" id="pin-cord" transform="translate(610 592)"><circle class="pulse" r="13"/><circle class="ring" r="13"/><text>+</text></g>
+          </g>
+
+          <!-- house: a roomier home, so the desk, router, drive and plant each have space -->
+          <g class="hot" data-key="computer" tabindex="0" role="button" aria-label="Your computer at home">
+            <!-- chimney (behind the roof) -->
+            <rect x="348" y="200" width="26" height="64" fill="#433559"/>
+            <path d="M348 214 H374 M348 228 H374 M361 200 V214 M354 214 V228 M368 214 V228 M361 228 V242" stroke="#2c213d" stroke-width="1.5"/>
+            <rect x="343" y="193" width="36" height="9" rx="2" fill="#2c213d" stroke="#433559" stroke-width="1.5"/>
+            <path d="M 36 290 L 245 150 L 454 290 Z" fill="#3d1f78"/>
+            <path d="M 36 290 L 245 150 L 454 290 Z" fill="url(#shingles)" opacity=".35"/>
+            <path d="M 36 290 L 245 150 L 454 290" fill="none" stroke="#d9aa45" stroke-width="4" stroke-linejoin="round"/>
+            <circle cx="245" cy="234" r="14" fill="#2c213d" stroke="#d9aa45" stroke-width="3"/>
+            <path d="M245 220 V248 M231 234 H259" stroke="#d9aa45" stroke-width="2"/>
+            <circle cx="245" cy="234" r="11" fill="#f0cc78" opacity=".25"/>
+            <rect x="60" y="290" width="370" height="260" fill="#2c213d" stroke="#433559" stroke-width="3"/>
+            <rect x="78" y="308" width="334" height="224" fill="#1f1630"/>
+            <!-- a warm glow around the screen, a little wall picture, a skirting line -->
+            <ellipse cx="205" cy="420" rx="140" ry="100" fill="url(#warm)"/>
+            <rect x="78" y="522" width="334" height="10" fill="#2c213d"/>
+            <rect x="350" y="330" width="44" height="34" rx="3" fill="#2c213d" stroke="#d9aa45" stroke-width="2.5"/>
+            <path d="M355 359 L367 345 L375 353 L381 347 L389 359 Z" fill="#9d7ae0"/>
+            <circle cx="383" cy="340" r="3" fill="#f0cc78"/>
+            <!-- a plant on the floor in the corner -->
+            <g transform="translate(389 522) scale(1.35) translate(-351 -522)">
+              <path d="M343 522 L341 506 L361 506 L359 522 Z" fill="#a8771f"/>
+              <rect x="339" y="502" width="24" height="6" rx="2" fill="#d9aa45"/>
+              <path d="M351 502 C 346 488, 336 484, 334 476 C 344 478, 350 488, 351 502 Z M351 502 C 354 486, 362 478, 360 468 C 354 474, 350 488, 351 502 Z M351 502 C 350 492, 344 486, 342 488" fill="#4cc38a" opacity=".85"/>
+            </g>
+            <!-- desk -->
+            <rect x="96" y="470" width="264" height="12" rx="3" fill="#a8771f"/>
+            <rect x="96" y="470" width="264" height="3" rx="1.5" fill="#d9aa45" opacity=".6"/>
+            <rect x="108" y="482" width="10" height="44" fill="#7a5a1c"/>
+            <rect x="338" y="482" width="10" height="44" fill="#7a5a1c"/>
+            <rect x="280" y="482" width="58" height="22" rx="2" fill="#7a5a1c"/>
+            <rect x="302" y="491" width="14" height="3" rx="1.5" fill="#d9aa45"/>
+            <!-- monitor (its right edge is where the tunnel plugs in) -->
+            <g transform="translate(-20 0)">
+              <rect x="150" y="372" width="140" height="88" rx="8" fill="#100b17" stroke="#cfc5de" stroke-width="3"/>
+              <rect x="158" y="380" width="124" height="72" rx="4" fill="url(#screen)"/>
+              <rect x="166" y="388" width="34" height="26" rx="3" fill="#f0cc78" opacity=".9"/>
+              <rect x="204" y="388" width="34" height="26" rx="3" fill="#9d7ae0"/>
+              <rect x="242" y="388" width="32" height="26" rx="3" fill="#4cc38a" opacity=".8"/>
+              <rect x="166" y="418" width="34" height="26" rx="3" fill="#9d7ae0" opacity=".7"/>
+              <rect x="204" y="418" width="34" height="26" rx="3" fill="#f7e2a4" opacity=".8"/>
+              <rect x="242" y="418" width="32" height="26" rx="3" fill="#d9aa45"/>
+              <path d="M170 410 L180 400 L186 406 L190 402 L196 410 Z" fill="#a8771f" opacity=".7"/>
+              <circle cx="225" cy="430" r="5" fill="#d9aa45" opacity=".7"/>
+              <path d="M210 380 L240 380 L196 452 L166 452 Z" fill="#fff" opacity=".05"/>
+              <circle cx="220" cy="456" r="1.6" fill="#4cc38a"/>
+              <rect x="212" y="460" width="16" height="10" fill="#cfc5de"/>
+              <rect x="198" y="466" width="44" height="5" rx="2.5" fill="#cfc5de"/>
+              <!-- keyboard and mouse -->
+              <rect x="152" y="464" width="40" height="6" rx="2" fill="#433559" stroke="#cfc5de" stroke-width="1.2"/>
+              <path d="M156 467 H188" stroke="#cfc5de" stroke-width="1.2" stroke-dasharray="2.5 1.5"/>
+              <ellipse cx="256" cy="467" rx="6" ry="3.5" fill="#cfc5de"/>
+            </g>
+            <!-- a mug -->
+            <rect x="104" y="452" width="16" height="18" rx="3" fill="#9d7ae0"/>
+            <path d="M120 456 a5 5 0 0 1 0 10" fill="none" stroke="#9d7ae0" stroke-width="3"/>
+            <path d="M107 456 H117" stroke="#f7e2a4" stroke-width="1.5" opacity=".6"/>
+            <circle cx="270" cy="440" r="7" fill="#f0cc78"/>
+            <rect class="halo" x="120" y="362" width="162" height="112" rx="12"/>
+            <g class="pin" transform="translate(282 366)"><circle class="pulse" r="13"/><circle class="ring" r="13"/><text>+</text></g>
+          </g>
+          <text class="label" x="245" y="575" text-anchor="middle">Your computer at home</text>
+          <g fill="#9d91b2" pointer-events="none">
+            <circle class="smoke" cx="361" cy="182" r="7" opacity=".3"/>
+            <circle class="smoke" cx="366" cy="166" r="9" opacity=".22" style="animation-delay:-2.3s"/>
+            <circle class="smoke" cx="374" cy="148" r="11" opacity=".14" style="animation-delay:-4.6s"/>
+          </g>
+          <!-- a shrub by the corner of the house -->
+          <g pointer-events="none">
+            <circle cx="28" cy="542" r="14" fill="#2c213d"/><circle cx="48" cy="534" r="17" fill="#2c213d"/><circle cx="66" cy="546" r="11" fill="#2c213d"/>
+            <circle cx="42" cy="526" r="5" fill="#433559" opacity=".8"/><circle cx="22" cy="536" r="4" fill="#433559" opacity=".7"/><circle cx="60" cy="538" r="3.5" fill="#433559" opacity=".7"/>
+            <circle cx="34" cy="544" r="2" fill="#f0cc78" opacity=".7"/><circle cx="54" cy="548" r="1.8" fill="#9d7ae0"/><circle cx="46" cy="530" r="1.6" fill="#f7e2a4" opacity=".8"/>
+          </g>
+
+          <g class="hot" data-key="drive" tabindex="0" role="button" aria-label="Your photo library">
+            <rect x="300" y="438" width="40" height="32" rx="5" fill="#d9aa45" stroke="#100b17" stroke-width="2"/>
+            <rect x="307" y="445" width="26" height="14" rx="2" fill="#100b17"/>
+            <path d="M 309 457 L 316 450 L 322 455 L 326 451 L 331 457 Z" fill="#f7e2a4"/>
+            <circle cx="327" cy="448" r="2" fill="#f7e2a4"/>
+            <path d="M307 464 H322" stroke="#7a5a1c" stroke-width="2" stroke-linecap="round"/>
+            <circle class="blink" cx="332" cy="464" r="1.8" fill="#4cc38a" style="animation-delay:.7s"/>
+            <rect class="halo" x="292" y="426" width="58" height="52" rx="8"/>
+            <g class="pin" transform="translate(348 428)"><circle class="pulse" r="11" style="animation-delay:.6s"/><circle class="ring" r="11"/><text>+</text></g>
+          </g>
+
+          <!-- the router, on its own little wall shelf -->
+          <g class="hot" data-key="router" tabindex="0" role="button" aria-label="Your home router" transform="translate(-12 0)">
+            <rect x="104" y="352" width="76" height="5" rx="2" fill="#a8771f"/>
+            <path d="M113 357 v4 l7 -4 M171 357 v4 l-7 -4" fill="#7a5a1c" stroke="#7a5a1c" stroke-width="2" stroke-linejoin="round"/>
+            <line x1="122" y1="330" x2="114" y2="312" stroke="#cfc5de" stroke-width="3" stroke-linecap="round"/>
+            <line x1="160" y1="330" x2="168" y2="312" stroke="#cfc5de" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="114" cy="312" r="2.6" fill="#cfc5de"/><circle cx="168" cy="312" r="2.6" fill="#cfc5de"/>
+            <rect x="110" y="330" width="62" height="22" rx="5" fill="#433559" stroke="#cfc5de" stroke-width="2"/>
+            <path d="M113 347 H169" stroke="#2c213d" stroke-width="1.5"/>
+            <circle class="blink" cx="126" cy="341" r="3" fill="#4cc38a"/>
+            <circle class="blink" cx="138" cy="341" r="3" fill="#4cc38a" style="animation-delay:.4s"/>
+            <circle cx="150" cy="341" r="3" fill="#f0cc78"/>
+            <path d="M159 337 v7 M163 337 v7 M167 337 v7" stroke="#2c213d" stroke-width="1.6" stroke-linecap="round"/>
+            <rect class="halo" x="100" y="302" width="84" height="58" rx="8"/>
+            <g class="pin" transform="translate(190 316)"><circle class="pulse" r="11" style="animation-delay:1.2s"/><circle class="ring" r="11"/><text>+</text></g>
+          </g>
+
+          <!-- the switchboard -->
+          <g class="hot" data-key="switchboard" tabindex="0" role="button" aria-label="Cloudflare's switchboard">
+            <path d="M 470 150 C 450 110, 500 76, 540 92 C 560 52, 640 52, 660 92 C 700 76, 750 110, 730 150 C 760 168, 740 214, 700 210 L 500 210 C 460 214, 440 168, 470 150 Z" fill="#2c213d" stroke="#9d7ae0" stroke-width="3"/>
+            <!-- panel of jacks -->
+            <path d="M 486 150 C 476 124, 506 102, 534 110 M 606 70 C 630 64, 652 78, 656 96" fill="none" stroke="#9d7ae0" stroke-width="2" stroke-linecap="round" opacity=".35"/>
+            <!-- the operator, with a headset, behind the board -->
+            <path d="M 576 124 C 576 106, 624 106, 624 124 Z" fill="#5b33a8"/>
+            <path d="M 592 108 L 600 118 L 608 108 Z" fill="#fbf8f3"/>
+            <path d="M 600 118 V 124" stroke="#3d1f78" stroke-width="1.5"/>
+            <circle cx="600" cy="92" r="16" fill="#f7e2a4"/>
+            <path d="M 585 90 C 585 72, 615 72, 615 90 C 610 82, 598 80, 594 84 C 591 82, 587 85, 585 90 Z" fill="#7a5a1c"/>
+            <circle cx="591" cy="98" r="2.6" fill="#d9aa45" opacity=".45"/><circle cx="610" cy="98" r="2.6" fill="#d9aa45" opacity=".45"/>
+            <path d="M 584 90 A 16 16 0 0 1 616 90" fill="none" stroke="#100b17" stroke-width="3"/>
+            <rect x="580" y="88" width="6" height="10" rx="2" fill="#100b17"/>
+            <rect x="614" y="88" width="6" height="10" rx="2" fill="#100b17"/>
+            <path d="M 583 98 Q 588 107 596 105" fill="none" stroke="#100b17" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="597" cy="105" r="2.2" fill="#433559"/>
+            <g class="wink"><circle cx="595" cy="91" r="1.8" fill="#100b17"/><circle cx="606" cy="91" r="1.8" fill="#100b17"/></g>
+            <path d="M 600 99 Q 603 102 607 99" fill="none" stroke="#100b17" stroke-width="1.6" stroke-linecap="round"/>
+            <!-- panel of jacks, on a little desk -->
+            <rect x="520" y="120" width="160" height="70" rx="8" fill="#1a1325" stroke="#433559" stroke-width="2"/>
+            <rect x="510" y="186" width="180" height="7" rx="2.5" fill="#433559"/>
+            <path d="M 528 128 H 672" stroke="#433559" stroke-width="1.2" stroke-dasharray="6 14"/>
+            <g fill="#100b17" stroke="#433559" stroke-width="1.5">
+              <circle cx="540" cy="138" r="6"/><circle cx="560" cy="138" r="6"/><circle cx="580" cy="138" r="6"/><circle cx="600" cy="138" r="6"/><circle cx="620" cy="138" r="6"/><circle cx="640" cy="138" r="6"/><circle cx="660" cy="138" r="6"/>
+              <circle cx="540" cy="160" r="6"/><circle cx="560" cy="160" r="6"/><circle cx="580" cy="160" r="6"/><circle cx="600" cy="160" r="6"/><circle cx="620" cy="160" r="6"/><circle cx="640" cy="160" r="6"/><circle cx="660" cy="160" r="6"/>
+            </g>
+            <g fill="#f0cc78">
+              <circle cx="540" cy="138" r="4"/><circle cx="560" cy="138" r="4"/><circle cx="580" cy="138" r="4" opacity=".4"/><circle cx="600" cy="138" r="4"/><circle cx="620" cy="138" r="4" opacity=".4"/><circle cx="640" cy="138" r="4"/><circle cx="660" cy="138" r="4" opacity=".4"/>
+              <circle cx="540" cy="160" r="4" opacity=".4"/><circle cx="560" cy="160" r="4"/><circle cx="580" cy="160" r="4"/><circle cx="600" cy="160" r="4" opacity=".4"/><circle cx="620" cy="160" r="4"/><circle cx="640" cy="160" r="4" opacity=".4"/><circle cx="660" cy="160" r="4"/>
+            </g>
+            <g fill="#100b17"><circle cx="540" cy="138" r="1.4"/><circle cx="560" cy="138" r="1.4"/><circle cx="600" cy="138" r="1.4"/><circle cx="640" cy="138" r="1.4"/><circle cx="560" cy="160" r="1.4"/><circle cx="580" cy="160" r="1.4"/><circle cx="620" cy="160" r="1.4"/><circle cx="660" cy="160" r="1.4"/></g>
+            <!-- plugged cords, sagging between jacks -->
+            <path d="M 540 138 C 548 176, 574 178, 580 160" fill="none" stroke="#4cc38a" stroke-width="2.5" opacity=".9"/>
+            <path d="M 620 160 C 630 182, 654 180, 660 138" fill="none" stroke="#f0cc78" stroke-width="2.5" opacity=".9"/>
+            <path d="M 560 160 C 575 185, 625 185, 640 138" fill="none" stroke="#9d7ae0" stroke-width="3"/>
+            <g fill="#cfc5de" stroke="#100b17" stroke-width="1"><rect x="537" y="134" width="6" height="8" rx="1.5"/><rect x="577" y="156" width="6" height="8" rx="1.5"/><rect x="557" y="156" width="6" height="8" rx="1.5"/><rect x="637" y="134" width="6" height="8" rx="1.5"/><rect x="617" y="156" width="6" height="8" rx="1.5"/><rect x="657" y="134" width="6" height="8" rx="1.5"/></g>
+            <!-- the operator's hands resting on the board -->
+            <path d="M 580 116 Q 578 122 584 124" fill="none" stroke="#5b33a8" stroke-width="6" stroke-linecap="round"/>
+            <circle cx="586" cy="123" r="4.5" fill="#f7e2a4"/><circle cx="616" cy="123" r="4.5" fill="#f7e2a4"/>
+            <path d="M 582 121 h6 M 612 121 h6" stroke="#fbf8f3" stroke-width="2" stroke-linecap="round"/>
+            <rect class="halo" x="444" y="50" width="312" height="172" rx="20"/>
+            <g class="pin" transform="translate(742 104)"><circle class="pulse" r="13" style="animation-delay:.3s"/><circle class="ring" r="13"/><text>+</text></g>
+          </g>
+          <text class="label" x="600" y="244" text-anchor="middle">Cloudflare’s switchboard</text>
+
+          <!-- the sealed note (moves along the dotted line) -->
+          <g class="hot" id="hot-note" data-key="note" tabindex="0" role="button" aria-label="The sealed let's-connect note">
+            <g id="note" transform="translate(800 196)">
+              <rect x="-16" y="-11" width="32" height="22" rx="3" fill="#fbf8f3" stroke="#a8771f" stroke-width="2"/>
+              <path d="M -16 -11 L 0 3 L 16 -11" fill="none" stroke="#a8771f" stroke-width="2"/>
+              <path d="M -16 11 L -5 1 M 16 11 L 5 1" fill="none" stroke="#a8771f" stroke-width="1" opacity=".5"/>
+              <path d="M -2 7 l -2 6 M 2 7 l 2 6" stroke="#a8771f" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="0" cy="3.5" r="5" fill="#d9aa45" stroke="#a8771f" stroke-width="1.2"/>
+              <circle cx="0" cy="3.5" r="2.2" fill="none" stroke="#a8771f" stroke-width="1"/>
+              <circle cx="-1.6" cy="2" r="1" fill="#f7e2a4"/>
+              <circle class="halo" r="24"/>
+            </g>
+          </g>
+
+          <!-- phone network tower -->
+          <g class="hot" data-key="network" tabindex="0" role="button" aria-label="Your phone network">
+            <path d="M 1110 520 L 1130 300 L 1150 520 Z" fill="none" stroke="#9d91b2" stroke-width="4" stroke-linejoin="round"/>
+            <path d="M 1117 440 L 1143 440 M 1121 380 L 1139 380 M 1113 490 L 1147 490 M 1126 336 L 1134 336" stroke="#9d91b2" stroke-width="3"/>
+            <path d="M 1113 490 L 1143 440 M 1147 490 L 1117 440 M 1117 440 L 1139 380 M 1143 440 L 1121 380 M 1121 380 L 1134 336 M 1139 380 L 1126 336" stroke="#9d91b2" stroke-width="1.6" opacity=".7"/>
+            <rect x="1119" y="318" width="5" height="13" rx="1.5" fill="#cfc5de"/><rect x="1136" y="318" width="5" height="13" rx="1.5" fill="#cfc5de"/>
+            <rect x="1100" y="518" width="60" height="7" rx="2" fill="#433559"/>
+            <circle cx="1130" cy="296" r="6" fill="#f0cc78"/>
+            <circle class="blink" cx="1130" cy="296" r="2.4" fill="#fbf8f3" style="animation-delay:.3s"/>
+            <path d="M 1110 282 A 26 26 0 0 1 1150 282 M 1100 270 A 40 40 0 0 1 1160 270" fill="none" stroke="#f0cc78" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+            <rect class="halo" x="1092" y="252" width="76" height="276" rx="12"/>
+            <g class="pin" transform="translate(1166 330)"><circle class="pulse" r="11" style="animation-delay:.9s"/><circle class="ring" r="11"/><text>+</text></g>
+          </g>
+
+          <!-- lamp and bench -->
+          <path class="flicker" d="M 884 300 L 914 300 L 1004 556 L 794 556 Z" fill="url(#lamp)" opacity=".7"/>
+          <ellipse cx="899" cy="556" rx="112" ry="10" fill="#f7e2a4" opacity=".08"/>
+          <circle class="flicker" cx="899" cy="294" r="34" fill="url(#moonglow)" opacity=".7"/>
+          <rect x="896" y="300" width="6" height="250" fill="#433559"/>
+          <rect x="893" y="350" width="12" height="5" rx="2" fill="#433559"/>
+          <path d="M 889 552 L 892 534 L 906 534 L 909 552 Z" fill="#433559"/>
+          <rect x="887" y="300" width="24" height="4" rx="2" fill="#433559"/>
+          <path d="M 880 300 L 918 300 L 908 284 L 890 284 Z" fill="#f7e2a4"/>
+          <path d="M 899 284 V 300" stroke="#d9aa45" stroke-width="1.2" opacity=".6"/>
+          <path d="M 886 285 L 899 274 L 912 285 Z" fill="#433559"/>
+          <circle cx="899" cy="272" r="2.6" fill="#433559"/>
+          <!-- two moths around the lamp -->
+          <g pointer-events="none" fill="#cfc5de" opacity=".85">
+            <g class="moth"><path d="M 868 276 l -4 -3 l 1 5 z M 868 276 l 4 -3 l -1 5 z"/></g>
+            <g class="moth" style="animation-delay:-1.1s;animation-duration:3.1s"><path d="M 930 294 l -3.5 -2.5 l 1 4 z M 930 294 l 3.5 -2.5 l -1 4 z"/></g>
+          </g>
+          <!-- the bench: back slats on two posts, a slatted seat -->
+          <rect x="856" y="474" width="6" height="34" fill="#7a5a1c"/>
+          <rect x="1018" y="474" width="6" height="34" fill="#7a5a1c"/>
+          <rect x="840" y="500" width="200" height="12" rx="4" fill="#a8771f"/>
+          <path d="M 846 506 H 1034" stroke="#7a5a1c" stroke-width="1.5"/>
+          <rect x="852" y="512" width="8" height="40" fill="#7a5a1c"/>
+          <rect x="1020" y="512" width="8" height="40" fill="#7a5a1c"/>
+          <rect x="840" y="470" width="200" height="10" rx="4" fill="#a8771f"/>
+          <rect x="840" y="485" width="200" height="8" rx="3" fill="#a8771f"/>
+          <path d="M 846 473 H 1034" stroke="#d9aa45" stroke-width="1.5" opacity=".6"/>
+
+          <!-- you, on your phone: sitting back on the bench, phone held out at chest height -->
+          <g class="hot" data-key="phone" tabindex="0" role="button" aria-label="You, on your phone">
+            <!-- legs: thighs along the seat, shins down, the far leg a shade darker -->
+            <path d="M 1000 489 L 958 487 L 955 538" fill="none" stroke="#2c213d" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M 963 536 H 948 C 940 536, 938 545, 944 546 H 964 Z" fill="#7a5a1c" opacity=".75"/>
+            <path d="M 1004 492 L 946 492 L 941 541" fill="none" stroke="#433559" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M 952 538 H 935 C 927 538, 925 548, 931 549 H 953 Z" fill="#7a5a1c"/>
+            <path d="M 928 546 H 953" stroke="#a8771f" stroke-width="1.5"/>
+            <!-- far arm, behind the coat -->
+            <path d="M 988 426 L 978 466 L 938 452" fill="none" stroke="#5b33a8" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="935" cy="450" r="5" fill="#f0cc78"/>
+            <!-- the coat, leaning back against the bench -->
+            <path d="M 970 499 C 966 472, 966 440, 974 422 C 982 404, 1012 404, 1018 422 C 1022 446, 1022 476, 1020 499 Z" fill="#9d7ae0"/>
+            <path d="M 970 494 H 1020" stroke="#5b33a8" stroke-width="3"/>
+            <path d="M 978 430 C 976 452, 976 474, 978 492" fill="none" stroke="#5b33a8" stroke-width="1.6"/>
+            <!-- head, tipped down towards the phone -->
+            <circle cx="994" cy="382" r="23" fill="#f7e2a4"/>
+            <circle cx="1008" cy="388" r="5.5" fill="#f0cc78"/>
+            <path d="M 1008 386 a 2.5 2.5 0 0 1 0 5" fill="none" stroke="#d9aa45" stroke-width="1.2"/>
+            <path d="M 971 377 C 973 350, 1019 350, 1018 378 C 1018 390, 1014 398, 1010 402 C 1010 392, 1006 380, 998 374 C 990 369, 978 371, 971 377 Z" fill="#3d1f78"/>
+            <path d="M 976 368 C 981 362, 988 362, 992 366 C 987 364, 981 365, 976 368 Z" fill="#5b33a8"/>
+            <path d="M 974 382 Q 978 380 982 382" fill="none" stroke="#3d1f78" stroke-width="1.6" stroke-linecap="round"/>
+            <g class="wink" style="animation-delay:-2s"><path d="M 975 389 q 3 2.4 6 0" fill="none" stroke="#100b17" stroke-width="2.2" stroke-linecap="round"/></g>
+            <circle cx="984" cy="395" r="3.4" fill="#d9aa45" opacity=".4"/>
+            <path d="M 974 397 Q 977 400 981 398" fill="none" stroke="#100b17" stroke-width="2" stroke-linecap="round"/>
+            <!-- a striped scarf, its end down the back -->
+            <path d="M 1002 408 L 1013 408 L 1016 444 L 1005 446 Z" fill="#d9aa45"/>
+            <path d="M 1003 420 L 1014 419 M 1004 432 L 1015 431" stroke="#a8771f" stroke-width="2.5"/>
+            <path d="M 1007 446 v 5 M 1011 445 v 5 M 1015 444 v 5" stroke="#d9aa45" stroke-width="1.5" stroke-linecap="round"/>
+            <rect x="975" y="400" width="38" height="11" rx="5.5" fill="#d9aa45"/>
+            <path d="M 985 401 v 9 M 995 401 v 9 M 1005 401 v 9" stroke="#a8771f" stroke-width="2"/>
+            <!-- the phone, held out in both hands -->
+            <g transform="rotate(-8 944 434)">
+              <rect x="930" y="410" width="28" height="48" rx="6" fill="#100b17" stroke="#cfc5de" stroke-width="2.5"/>
+              <rect x="934" y="416" width="20" height="36" rx="3" fill="url(#screen)"/>
+              <rect x="939" y="412.4" width="10" height="2" rx="1" fill="#433559"/>
+              <rect x="937" y="420" width="7" height="7" rx="1" fill="#f0cc78"/><rect x="945" y="420" width="7" height="7" rx="1" fill="#9d7ae0"/>
+              <rect x="937" y="429" width="7" height="7" rx="1" fill="#4cc38a"/><rect x="945" y="429" width="7" height="7" rx="1" fill="#f7e2a4"/>
+              <rect x="937" y="438" width="7" height="7" rx="1" fill="#d9aa45" opacity=".8"/><rect x="945" y="438" width="7" height="7" rx="1" fill="#cfc5de" opacity=".7"/>
+              <path d="M 942 418 L 952 418 L 938 450 L 935 450 Z" fill="#fff" opacity=".06"/>
+            </g>
+            <!-- near arm: shoulder, bent elbow, hand around the phone -->
+            <path d="M 1004 426 L 996 468 L 960 452" fill="none" stroke="#5b33a8" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M 1004 426 L 996 468 L 960 452" fill="none" stroke="#9d7ae0" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M 966 448 l -1 10" stroke="#5b33a8" stroke-width="2.5" stroke-linecap="round"/>
+            <ellipse cx="957" cy="448" rx="5.5" ry="6.5" fill="#f7e2a4"/>
+            <path d="M 954 441 q 4 -2 6 2" fill="none" stroke="#f0cc78" stroke-width="1.5" stroke-linecap="round"/>
+            <rect class="halo" x="918" y="348" width="112" height="208" rx="14"/>
+            <g class="pin" transform="translate(1032 358)"><circle class="pulse" r="13" style="animation-delay:1.5s"/><circle class="ring" r="13"/><text>+</text></g>
+          </g>
+          <text class="label" x="975" y="590" text-anchor="middle">You, on your phone</text>
+          <text class="label small" x="610" y="626" text-anchor="middle" id="cord-label">The locked tunnel, straight from your phone to your computer</text>
+        </svg>
+        <svg class="scene" id="scene-home" viewBox="0 0 1200 640" role="img" aria-labelledby="home-title" hidden>
+          <title id="home-title">Inside a home at night: a computer on a desk with photo drives, a phone and a camera card plugged in, a scanner with old prints, a delivery box of downloads, and someone at a small desk with the family laptop</title>
+          <!-- wall, window, floor -->
+          <rect width="1200" height="640" fill="#221930"/>
+          <rect y="500" width="1200" height="140" fill="#1a1325"/>
+          <path d="M0 540 H1200 M0 585 H1200" stroke="#2c213d" stroke-width="2"/>
+          <path d="M140 500 V540 M420 500 V540 M700 500 V540 M980 500 V540 M60 540 V585 M300 540 V585 M560 540 V585 M840 540 V585 M1100 540 V585 M180 585 V640 M460 585 V640 M740 585 V640 M1020 585 V640" stroke="#2c213d" stroke-width="2"/>
+          <rect y="490" width="1200" height="10" fill="#2c213d"/>
+          <path d="M0 490 H1200" stroke="#433559" stroke-width="1.5"/>
+          <!-- a soft pool of lamp-light behind the desk -->
+          <ellipse cx="500" cy="360" rx="300" ry="170" fill="url(#warm)"/>
+          <!-- the window: night outside, curtains, a sill with a cat -->
+          <rect x="60" y="60" width="190" height="150" rx="6" fill="#1b1230" stroke="#a8771f" stroke-width="5"/>
+          <path d="M63 196 C 100 176, 130 186, 160 180 C 196 174, 222 186, 247 178 V207 H63 Z" fill="#221930"/>
+          <path d="M155 60 V210 M60 135 H250" stroke="#a8771f" stroke-width="4"/>
+          <circle cx="205" cy="98" r="34" fill="url(#moonglow)"/>
+          <path d="M 203.2 82.1 A 16 16 0 1 0 219.5 104.9 A 14 14 0 0 1 203.2 82.1 Z" fill="#f7e2a4"/>
+          <g fill="#d9aa45" opacity=".35"><circle cx="195" cy="102" r="2.2"/><circle cx="201" cy="109" r="1.5"/></g>
+          <circle cx="90" cy="90" r="1.6" fill="#fff"/><circle cx="120" cy="170" r="1.4" fill="#fff" opacity=".6"/><circle class="twinkle" cx="190" cy="150" r="1.8" fill="#fff"/>
+          <circle cx="130" cy="80" r="1" fill="#fff" opacity=".5"/><circle cx="230" cy="150" r="1" fill="#fff" opacity=".45"/><circle class="twinkle" cx="100" cy="120" r="1.3" fill="#fff" style="animation-delay:1.4s"/>
+          <path d="M70 70 L96 70 L70 104 Z M170 70 L184 70 L170 88 Z" fill="#fff" opacity=".05"/>
+          <path d="M28 50 H282" stroke="#a8771f" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="28" cy="50" r="5" fill="#d9aa45"/><circle cx="282" cy="50" r="5" fill="#d9aa45"/>
+          <path d="M36 50 H76 C 74 90, 80 130, 70 150 C 78 180, 72 210, 80 236 H40 C 46 200, 40 160, 44 140 C 36 110, 40 80, 36 50 Z" fill="#5b33a8"/>
+          <path d="M56 54 C 56 90, 58 120, 56 140 M50 160 C 52 190, 54 210, 58 232" fill="none" stroke="#3d1f78" stroke-width="2.5"/>
+          <path d="M274 50 H234 C 236 90, 230 130, 240 150 C 232 180, 238 210, 230 236 H270 C 264 200, 270 160, 266 140 C 274 110, 270 80, 274 50 Z" fill="#5b33a8"/>
+          <path d="M254 54 C 254 90, 252 120, 254 140 M260 160 C 258 190, 256 210, 252 232" fill="none" stroke="#3d1f78" stroke-width="2.5"/>
+          <rect x="40" y="143" width="38" height="7" rx="3.5" fill="#d9aa45"/><rect x="232" y="143" width="38" height="7" rx="3.5" fill="#d9aa45"/>
+          <rect x="48" y="208" width="214" height="10" rx="3" fill="#a8771f"/>
+          <rect x="54" y="218" width="202" height="4" rx="2" fill="#7a5a1c"/>
+          <g pointer-events="none">
+            <path d="M 204 208 C 196 214, 196 228, 204 234 C 208 237, 212 234, 209 231" fill="none" stroke="#433559" stroke-width="4.5" stroke-linecap="round"/>
+            <path d="M 172 208 C 168 192, 176 180, 186 180 C 198 180, 206 192, 202 208 Z" fill="#433559"/>
+            <circle cx="182" cy="172" r="10" fill="#433559"/>
+            <path d="M 174 166 L 175 154 L 182 163 Z M 186 163 L 192 154 L 192 167 Z" fill="#433559"/>
+            <path d="M 176 162 L 176.5 158 L 179 161 Z M 188 161 L 190 158 L 190 163 Z" fill="#9d7ae0" opacity=".6"/>
+            <g class="wink" style="animation-delay:-3.4s"><ellipse cx="178" cy="172" rx="1.8" ry="2.2" fill="#f0cc78"/><ellipse cx="186" cy="172" rx="1.8" ry="2.2" fill="#f0cc78"/></g>
+            <path d="M 180 177 l 2 1.4 2 -1.4" fill="none" stroke="#9d91b2" stroke-width="1"/>
+            <path d="M 172 176 l -7 -1 M 172 178 l -7 2 M 192 176 l 7 -1 M 192 178 l 7 2" stroke="#9d91b2" stroke-width=".8" opacity=".7"/>
+          </g>
+          <!-- a picture frame and a lamp for warmth -->
+          <path d="M310 90 L345 72 L380 90" fill="none" stroke="#9d91b2" stroke-width="1.5"/>
+          <circle cx="345" cy="72" r="2.5" fill="#9d91b2"/>
+          <rect x="300" y="90" width="90" height="70" rx="4" fill="#2c213d" stroke="#d9aa45" stroke-width="4"/>
+          <rect x="306" y="96" width="78" height="58" rx="2" fill="none" stroke="#f7e2a4" stroke-width="1" opacity=".35"/>
+          <path d="M308 150 L330 124 L346 140 L358 128 L382 150 Z" fill="#9d7ae0"/>
+          <circle cx="368" cy="110" r="7" fill="#f0cc78"/>
+
+          <!-- the AI bubble over the computer -->
+          <g class="hot" data-key="ai" transform="translate(-24 0)" tabindex="0" role="button" aria-label="The clever parts, on your computer">
+            <rect x="404" y="170" width="236" height="72" rx="18" fill="#2c213d" stroke="#9d7ae0" stroke-width="3"/>
+            <path d="M500 242 L520 268 L530 242 Z" fill="#2c213d" stroke="#9d7ae0" stroke-width="3" stroke-linejoin="round"/>
+            <rect x="499" y="236" width="34" height="8" fill="#2c213d"/>
+            <circle cx="438" cy="206" r="14" fill="#f7e2a4"/><circle cx="433" cy="203" r="2" fill="#100b17"/><circle cx="443" cy="203" r="2" fill="#100b17"/><path d="M432 211 Q438 215 444 211" fill="none" stroke="#100b17" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="490" cy="202" r="11" fill="none" stroke="#f0cc78" stroke-width="4"/><path d="M498 210 L508 220" stroke="#f0cc78" stroke-width="4" stroke-linecap="round"/>
+            <rect x="528" y="190" width="40" height="32" rx="4" fill="#4cc38a"/><path d="M528 200 H568" stroke="#1a1325" stroke-width="3"/><path d="M536 186 V194 M560 186 V194" stroke="#4cc38a" stroke-width="4" stroke-linecap="round"/>
+            <text x="604" y="214" fill="#f0cc78" font-family="Fraunces, Georgia, serif" font-size="26" font-weight="600" text-anchor="middle">Aa</text>
+            <path class="twinkle" d="M628 180 l4 8 8 4 -8 4 -4 8 -4 -8 -8 -4 8 -4 z" fill="#f7e2a4"/>
+            <rect class="halo" x="396" y="162" width="252" height="88" rx="22"/>
+            <g class="pin" transform="translate(646 172)"><circle class="pulse" r="13"/><circle class="ring" r="13"/><text>+</text></g>
+          </g>
+
+          <!-- desk and computer -->
+          <!-- a leafy plant in a pot, beside the desk -->
+          <g pointer-events="none" transform="translate(-60 0)">
+            <path d="M262 500 L256 462 L296 462 L290 500 Z" fill="#a8771f"/>
+            <rect x="252" y="456" width="48" height="9" rx="3" fill="#d9aa45"/>
+            <path d="M262 476 H290" stroke="#7a5a1c" stroke-width="2"/>
+            <g fill="#4cc38a">
+              <path d="M276 456 C 262 440, 246 430, 240 410 C 258 414, 272 430, 276 456 Z" opacity=".8"/>
+              <path d="M276 456 C 270 432, 272 410, 284 392 C 290 412, 284 434, 276 456 Z"/>
+              <path d="M276 456 C 286 438, 300 428, 312 424 C 306 442, 292 452, 276 456 Z" opacity=".75"/>
+              <path d="M276 456 C 264 446, 254 444, 246 448 C 256 454, 266 456, 276 456 Z" opacity=".65"/>
+            </g>
+            <path d="M276 454 C 272 432, 276 412, 284 396 M276 454 C 268 440, 256 428, 244 414" fill="none" stroke="#2c213d" stroke-width="1.2" opacity=".5"/>
+          </g>
+          <rect x="256" y="430" width="542" height="16" rx="4" fill="#a8771f"/>
+          <rect x="256" y="430" width="542" height="4" rx="2" fill="#d9aa45" opacity=".55"/>
+          <rect x="272" y="446" width="12" height="80" fill="#7a5a1c"/><rect x="770" y="446" width="12" height="80" fill="#7a5a1c"/>
+          <!-- a mug of tea, still steaming -->
+          <g pointer-events="none" transform="translate(-4 0)">
+            <rect x="770" y="410" width="18" height="20" rx="3" fill="#4cc38a"/>
+            <path d="M788 415 a5.5 5.5 0 0 1 0 11" fill="none" stroke="#4cc38a" stroke-width="3"/>
+            <path d="M773 414 H785" stroke="#fbf8f3" stroke-width="1.5" opacity=".5"/>
+            <circle class="smoke" cx="777" cy="398" r="3.5" fill="#cfc5de" opacity=".2"/>
+            <circle class="smoke" cx="781" cy="390" r="4.5" fill="#cfc5de" opacity=".14" style="animation-delay:-3.5s"/>
+          </g>
+          <g class="hot" data-key="library" transform="translate(-24 0)" tabindex="0" role="button" aria-label="Your photo library">
+            <rect x="420" y="290" width="200" height="124" rx="10" fill="#100b17" stroke="#cfc5de" stroke-width="3"/>
+            <rect x="430" y="300" width="180" height="104" rx="5" fill="url(#screen)"/>
+            <g>
+              <rect x="440" y="310" width="50" height="40" rx="3" fill="#f0cc78"/><rect x="495" y="310" width="50" height="40" rx="3" fill="#9d7ae0"/><rect x="550" y="310" width="50" height="40" rx="3" fill="#4cc38a" opacity=".85"/>
+              <rect x="440" y="355" width="50" height="40" rx="3" fill="#cfc5de" opacity=".8"/><rect x="495" y="355" width="50" height="40" rx="3" fill="#f7e2a4"/><rect x="550" y="355" width="50" height="40" rx="3" fill="#d9aa45"/>
+            </g>
+            <path d="M444 334 L454 324 L462 332 L468 326 L478 334 Z M556 380 L566 370 L572 376 L578 371 L590 380 Z" fill="#a8771f" opacity=".6"/>
+            <circle cx="520" cy="330" r="6" fill="#f7e2a4" opacity=".7"/><circle cx="470" cy="372" r="5" fill="#9d7ae0" opacity=".6"/>
+            <path d="M540 300 L580 300 L520 404 L480 404 Z" fill="#fff" opacity=".045"/>
+            <circle cx="520" cy="409" r="1.8" fill="#4cc38a"/>
+            <rect x="510" y="414" width="20" height="16" fill="#cfc5de"/>
+            <rect x="492" y="426" width="56" height="5" rx="2.5" fill="#cfc5de"/>
+            <!-- keyboard and mouse -->
+            <rect x="436" y="422" width="50" height="8" rx="2.5" fill="#433559" stroke="#cfc5de" stroke-width="1.4"/>
+            <path d="M440 426 H482" stroke="#cfc5de" stroke-width="1.4" stroke-dasharray="3 1.6"/>
+            <path d="M553 430 C 553 420, 567 420, 567 430 Z" fill="#cfc5de"/>
+            <path d="M560 421 V426" stroke="#433559" stroke-width="1"/>
+            <!-- the library drive -->
+            <rect x="642" y="386" width="54" height="44" rx="6" fill="#d9aa45" stroke="#100b17" stroke-width="2"/>
+            <rect x="651" y="395" width="36" height="18" rx="2" fill="#100b17"/>
+            <path d="M654 410 L663 401 L670 407 L675 402 L684 410 Z" fill="#f7e2a4"/>
+            <circle cx="680" cy="400" r="2" fill="#f7e2a4"/>
+            <path d="M651 421 H670" stroke="#7a5a1c" stroke-width="2" stroke-linecap="round"/>
+            <circle class="blink" cx="687" cy="421" r="2.2" fill="#4cc38a" style="animation-delay:.3s"/>
+            <rect class="halo" x="414" y="280" width="284" height="160" rx="14"/>
+            <g class="pin" transform="translate(420 292)"><circle class="pulse" r="13" style="animation-delay:.5s"/><circle class="ring" r="13"/><text>+</text></g>
+          </g>
+          <g class="hot" data-key="backup" transform="translate(-16 0)" tabindex="0" role="button" aria-label="A second drive keeping a copy">
+            <rect x="706" y="392" width="48" height="38" rx="6" fill="#9d7ae0" stroke="#100b17" stroke-width="2"/>
+            <path d="M719 411 l6 6 12 -12" fill="none" stroke="#100b17" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M712 424 H730" stroke="#5b33a8" stroke-width="2" stroke-linecap="round"/>
+            <circle class="blink" cx="746" cy="424" r="2" fill="#4cc38a" style="animation-delay:.9s"/>
+            <path d="M688 404 C 694 396, 700 396, 706 404" fill="none" stroke="#f0cc78" stroke-width="2" stroke-dasharray="3 3"/>
+            <rect class="halo" x="700" y="384" width="62" height="54" rx="8"/>
+            <g class="pin" transform="translate(760 386)"><circle class="pulse" r="11" style="animation-delay:1s"/><circle class="ring" r="11"/><text>+</text></g>
+          </g>
+          <g class="hot" data-key="cable" transform="translate(-58 0)" tabindex="0" role="button" aria-label="A phone plugged in by cable">
+            <rect x="330" y="406" width="56" height="24" rx="6" fill="#100b17" stroke="#cfc5de" stroke-width="2.5"/>
+            <rect x="336" y="411" width="40" height="14" rx="2" fill="url(#screen)"/>
+            <rect x="339" y="413" width="6" height="5" rx="1" fill="#f0cc78"/><rect x="347" y="413" width="6" height="5" rx="1" fill="#9d7ae0"/><rect x="355" y="413" width="6" height="5" rx="1" fill="#4cc38a"/>
+            <rect x="379.5" y="413" width="1.6" height="10" rx=".8" fill="#cfc5de" opacity=".8"/>
+            <rect x="331.5" y="415" width="2" height="6" rx="1" fill="#433559"/>
+            <rect x="384" y="415" width="5" height="6" rx="1" fill="#cfc5de"/>
+            <path d="M386 418 C 404 418, 400 440, 424 438 C 470 434, 520 444, 554 431" fill="none" stroke="#cfc5de" stroke-width="3"/>
+            <rect class="halo" x="322" y="398" width="72" height="40" rx="8"/>
+            <g class="pin" transform="translate(340 392)"><circle class="pulse" r="11" style="animation-delay:1.4s"/><circle class="ring" r="11"/><text>+</text></g>
+          </g>
+          <g class="hot" data-key="card" transform="translate(-226 0)" tabindex="0" role="button" aria-label="A camera card">
+            <path d="M580 412 h22 l8 8 v10 h-30 z" fill="#4cc38a" stroke="#100b17" stroke-width="2"/>
+            <path d="M586 418 v6 M592 418 v6 M598 418 v6" stroke="#100b17" stroke-width="2"/>
+            <rect x="584" y="426" width="20" height="2.4" rx="1" fill="#2c213d" opacity=".6"/>
+            <rect x="577" y="419" width="3" height="5" rx="1" fill="#cfc5de"/>
+            <rect class="halo" x="572" y="404" width="42" height="34" rx="6"/>
+            <g class="pin" transform="translate(612 404)"><circle class="pulse" r="10" style="animation-delay:.8s"/><circle class="ring" r="10"/><text>+</text></g>
+          </g>
+
+          <!-- scanner and a shoebox of prints -->
+          <g class="hot" data-key="scans" transform="translate(-10 0)" tabindex="0" role="button" aria-label="A scanner and a box of old prints">
+            <rect x="830" y="440" width="150" height="70" rx="4" fill="#433559"/>
+            <path d="M836 476 H974" stroke="#2c213d" stroke-width="2"/>
+            <rect x="842" y="486" width="56" height="5" rx="2.5" fill="#2c213d"/>
+            <circle cx="962" cy="458" r="4.5" fill="#4cc38a"/><circle cx="947" cy="458" r="3.5" fill="#f0cc78"/>
+            <circle cx="962" cy="458" r="1.6" fill="#fbf8f3" opacity=".6"/>
+            <rect x="840" y="410" width="130" height="30" rx="5" fill="#cfc5de"/>
+            <rect x="846" y="413" width="118" height="24" rx="3" fill="#9d91b2" opacity=".35"/>
+            <path d="M840 410 L860 352 L990 352 L970 410 Z" fill="#9d91b2"/>
+            <path d="M851 404 L866 359 L980 359 L965 404 Z" fill="#cfc5de" opacity=".3"/>
+            <path d="M840 410 L970 410" stroke="#433559" stroke-width="2"/>
+            <rect x="858" y="406" width="16" height="7" rx="2" fill="#433559"/><rect x="936" y="406" width="16" height="7" rx="2" fill="#433559"/>
+            <g transform="rotate(-4 867 424)"><rect x="852" y="414" width="30" height="20" fill="#f7e2a4"/><path d="M855 431 L862 423 L867 428 L871 424 L879 431 Z" fill="#a8771f" opacity=".6"/></g>
+            <g transform="rotate(3 905 425)"><rect x="890" y="415" width="30" height="20" fill="#f0cc78"/><circle cx="905" cy="423" r="4" fill="#a8771f" opacity=".5"/><path d="M898 435 C 898 428, 912 428, 912 435 Z" fill="#a8771f" opacity=".5"/></g>
+            <g transform="rotate(-2 943 424)"><rect x="928" y="414" width="30" height="20" fill="#9d7ae0"/><path d="M931 431 L939 422 L945 428 L949 424 L955 431 Z" fill="#3d1f78" opacity=".6"/></g>
+            <path d="M960 413 L966 413 L956 437 L950 437 Z" fill="#fff" opacity=".25"/>
+            <rect x="842" y="436" width="126" height="2.5" rx="1" fill="#f7e2a4" opacity=".7"/>
+            <!-- the shoebox, its lid leaning on it, prints with photo corners -->
+            <rect x="850" y="545" width="110" height="48" rx="4" fill="#a8771f"/>
+            <path d="M856 550 V588 M954 550 V588" stroke="#7a5a1c" stroke-width="2" opacity=".7"/>
+            <rect x="880" y="562" width="50" height="18" rx="2" fill="#fbf8f3" opacity=".85"/>
+            <path d="M886 568 H918 M886 574 H910" stroke="#a8771f" stroke-width="2" stroke-linecap="round"/>
+            <g transform="rotate(-8 876 537)"><rect x="862" y="526" width="28" height="22" fill="#fbf8f3"/><rect x="865" y="529" width="22" height="14" fill="#9d7ae0" opacity=".7"/><path d="M865 529 h4 l-4 4 z M887 529 h-4 l4 4 z" fill="#100b17" opacity=".7"/></g>
+            <g transform="rotate(6 914 535)"><rect x="900" y="524" width="28" height="22" fill="#f7e2a4"/><rect x="903" y="527" width="22" height="14" fill="#4cc38a" opacity=".6"/><path d="M903 527 h4 l-4 4 z M925 527 h-4 l4 4 z" fill="#100b17" opacity=".7"/></g>
+            <g transform="rotate(-3 940 535)"><rect x="928" y="528" width="24" height="18" fill="#fbf8f3"/><rect x="931" y="531" width="18" height="11" fill="#d9aa45" opacity=".7"/></g>
+            <rect x="846" y="540" width="118" height="10" rx="3" fill="#d9aa45"/>
+            <path d="M848 549 H962" stroke="#a8771f" stroke-width="2"/>
+            <path d="M962 593 L978 593 L990 530 L974 530 Z" fill="#d9aa45"/>
+            <path d="M966 593 L978 530" stroke="#a8771f" stroke-width="2"/>
+            <rect class="halo" x="822" y="344" width="176" height="256" rx="12"/>
+            <g class="pin" transform="translate(992 362)"><circle class="pulse" r="13" style="animation-delay:.2s"/><circle class="ring" r="13"/><text>+</text></g>
+          </g>
+
+          <!-- a delivery box of downloads -->
+          <g class="hot" data-key="services" transform="translate(-44 0)" tabindex="0" role="button" aria-label="Your photos from online services">
+            <path d="M110 530 L230 530 L230 610 L110 610 Z" fill="#a8771f"/>
+            <path d="M100 516 L240 516 L230 534 L110 534 Z" fill="#d9aa45"/>
+            <path d="M110 534 L230 534" stroke="#7a5a1c" stroke-width="2"/>
+            <path d="M206 534 V610" stroke="#7a5a1c" stroke-width="1.5" opacity=".5"/>
+            <rect x="163" y="516" width="14" height="18" fill="#cfc5de" opacity=".55"/>
+            <rect x="163" y="534" width="14" height="9" fill="#cfc5de" opacity=".45"/>
+            <path d="M170 516 V534" stroke="#7a5a1c" stroke-width="2"/>
+            <rect x="194" y="582" width="30" height="22" rx="2" fill="#fbf8f3"/>
+            <path d="M198 587 H214 M198 591 H210" stroke="#a8771f" stroke-width="1.5"/>
+            <path d="M198 596 v5 M200.5 596 v5 M204 596 v5 M206 596 v5 M209 596 v5 M212.5 596 v5 M214.5 596 v5 M218 596 v5 M220 596 v5" stroke="#100b17" stroke-width="1.2"/>
+            <path d="M140 578 a14 14 0 0 1 6 -27 a20 20 0 0 1 38 4 a12 12 0 0 1 2 23 z" fill="#fbf8f3"/>
+            <path d="M166 556 v18 M158 566 l8 8 8 -8" fill="none" stroke="#a8771f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect class="halo" x="92" y="506" width="156" height="112" rx="10"/>
+            <g class="pin" transform="translate(240 512)"><circle class="pulse" r="12" style="animation-delay:1.1s"/><circle class="ring" r="12"/><text>+</text></g>
+          </g>
+
+          <!-- router and the family laptop -->
+          <g class="hot" data-key="homenet" tabindex="0" role="button" aria-label="Your home network">
+            <rect x="880" y="250" width="70" height="10" rx="2" fill="#a8771f"/>
+            <rect x="880" y="250" width="70" height="3" rx="1.5" fill="#d9aa45" opacity=".6"/>
+            <path d="M888 260 v6 l8 -6 M942 260 v6 l-8 -6" fill="#7a5a1c" stroke="#7a5a1c" stroke-width="2" stroke-linejoin="round"/>
+            <line x1="894" y1="228" x2="889" y2="210" stroke="#cfc5de" stroke-width="3" stroke-linecap="round"/>
+            <line x1="936" y1="228" x2="941" y2="210" stroke="#cfc5de" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="889" cy="210" r="2.4" fill="#cfc5de"/><circle cx="941" cy="210" r="2.4" fill="#cfc5de"/>
+            <rect x="884" y="228" width="62" height="22" rx="5" fill="#433559" stroke="#cfc5de" stroke-width="2"/>
+            <circle class="blink" cx="898" cy="239" r="3" fill="#4cc38a"/><circle class="blink" cx="910" cy="239" r="3" fill="#4cc38a" style="animation-delay:.4s"/>
+            <circle cx="922" cy="239" r="3" fill="#f0cc78"/>
+            <path d="M932 235 v8 M936 235 v8 M940 235 v8" stroke="#2c213d" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M960 220 a26 26 0 0 1 0 36 M972 208 a42 42 0 0 1 0 60" fill="none" stroke="#f0cc78" stroke-width="3" stroke-linecap="round" opacity=".75"/>
+            <rect class="halo" x="872" y="200" width="112" height="70" rx="10"/>
+            <g class="pin" transform="translate(872 222)"><circle class="pulse" r="11" style="animation-delay:.6s"/><circle class="ring" r="11"/><text>+</text></g>
+          </g>
+          <g class="hot" data-key="family" tabindex="0" role="button" aria-label="A family computer">
+            <!-- a small desk -->
+            <rect x="1104" y="452" width="88" height="10" rx="3" fill="#a8771f"/>
+            <rect x="1104" y="452" width="88" height="3" rx="1.5" fill="#d9aa45" opacity=".55"/>
+            <rect x="1110" y="462" width="76" height="8" fill="#7a5a1c"/>
+            <rect x="1112" y="470" width="8" height="70" fill="#7a5a1c"/><rect x="1176" y="470" width="8" height="70" fill="#7a5a1c"/>
+            <!-- the laptop: a lid with its screen, and a keyboard base -->
+            <path d="M1124 444 L1170 444 L1176 402 L1130 402 Z" fill="#cfc5de"/>
+            <path d="M1128 440 L1166 440 L1171 406 L1133 406 Z" fill="url(#screen)"/>
+            <path d="M1134 420 L1144 420 L1145 412 L1135 412 Z" fill="#f0cc78"/><path d="M1148 420 L1158 420 L1159 412 L1149 412 Z" fill="#9d7ae0"/>
+            <path d="M1132 433 L1142 433 L1143 425 L1133 425 Z" fill="#4cc38a"/><path d="M1146 433 L1156 433 L1157 425 L1147 425 Z" fill="#f7e2a4"/>
+            <path d="M1118 444 L1176 444 L1182 452 L1112 452 Z" fill="#cfc5de"/>
+            <path d="M1122 447 H1174 M1119 450 H1177" stroke="#9d91b2" stroke-width="1.3" stroke-dasharray="3 1.5"/>
+            <!-- the chair -->
+            <rect x="1030" y="414" width="16" height="54" rx="5" fill="#a8771f"/>
+            <path d="M1034 424 H1042 M1034 436 H1042" stroke="#7a5a1c" stroke-width="2" stroke-linecap="round"/>
+            <rect x="1034" y="414" width="8" height="126" fill="#7a5a1c"/>
+            <rect x="1030" y="486" width="64" height="9" rx="3" fill="#a8771f"/>
+            <rect x="1030" y="486" width="64" height="3" rx="1.5" fill="#d9aa45" opacity=".55"/>
+            <rect x="1084" y="495" width="7" height="45" fill="#7a5a1c"/>
+            <path d="M1042 520 H1084" stroke="#7a5a1c" stroke-width="3"/>
+            <!-- the person: legs, then the far arm, the jumper, the head -->
+            <path d="M1052 480 L1094 478 L1100 532" fill="none" stroke="#2c213d" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M1094 530 H1108 C1116 530, 1118 539, 1112 540 H1093 Z" fill="#7a5a1c" opacity=".75"/>
+            <path d="M1050 484 L1088 484 L1092 534" fill="none" stroke="#433559" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M1086 532 H1102 C1110 532, 1112 541, 1106 542 H1085 Z" fill="#7a5a1c"/>
+            <path d="M1074 430 L1082 462 L1140 447" fill="none" stroke="#4cc38a" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>
+            <path d="M1046 484 L1048 442 C 1050 420, 1086 418, 1090 438 L1088 482 Z" fill="#4cc38a"/>
+            <path d="M1048 479 H1088" stroke="#2c213d" stroke-width="2" opacity=".35"/>
+            <rect x="1062" y="404" width="12" height="16" rx="3" fill="#f0cc78"/>
+            <path d="M1060 422 L1068 432 L1076 422" fill="#f0cc78" stroke="#fbf8f3" stroke-width="2.5" stroke-linejoin="round"/>
+            <g transform="translate(-22 -4)">
+              <path d="M1064 370 C 1056 380, 1058 400, 1066 408 C 1068 398, 1068 388, 1070 380 Z" fill="#a8771f"/>
+              <circle cx="1090" cy="392" r="20" fill="#f7e2a4"/>
+              <path d="M1070 390 C 1074 366, 1108 366, 1110 390 C 1100 380, 1080 380, 1070 390 Z" fill="#a8771f"/>
+              <path d="M1068 392 C 1066 384, 1070 376, 1076 374 C 1072 380, 1072 388, 1074 396 Z" fill="#a8771f"/>
+              <circle cx="1062" cy="378" r="5" fill="#d9aa45"/>
+              <path d="M1092 389 q3 -1.5 6 0 M1103 389 q3 -1.5 6 0" fill="none" stroke="#7a5a1c" stroke-width="1.4" stroke-linecap="round"/>
+              <g class="wink" style="animation-delay:-1.2s"><circle cx="1096" cy="395" r="2.1" fill="#100b17"/><circle cx="1106" cy="395" r="2.1" fill="#100b17"/></g>
+              <circle cx="1090" cy="400" r="3.2" fill="#d9aa45" opacity=".4"/><circle cx="1108" cy="400" r="3" fill="#d9aa45" opacity=".4"/>
+              <path d="M1097 403 Q1101 406 1105 403" fill="none" stroke="#100b17" stroke-width="1.8" stroke-linecap="round"/>
+            </g>
+            <!-- the near arm, elbow bent, hands on the keyboard -->
+            <path d="M1080 432 L1088 466 L1126 450" fill="none" stroke="#2c213d" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity=".35"/>
+            <path d="M1080 432 L1088 466 L1126 450" fill="none" stroke="#4cc38a" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+            <ellipse cx="1142" cy="446.5" rx="5" ry="3.6" fill="#f0cc78"/>
+            <ellipse cx="1128" cy="448" rx="5.5" ry="4" fill="#f7e2a4"/>
+            <!-- the Wi-Fi reaching it from the router -->
+            <path d="M 994 252 C 1060 280, 1120 330, 1150 396" fill="none" stroke="#f0cc78" stroke-width="2" stroke-dasharray="3 7" opacity=".7"/>
+            <rect class="halo" x="1012" y="356" width="184" height="192" rx="16"/>
+            <g class="pin" transform="translate(1186 372)"><circle class="pulse" r="12" style="animation-delay:1.7s"/><circle class="ring" r="12"/><text>+</text></g>
+          </g>
+          <text class="label" x="528" y="476" text-anchor="middle">Everything clever happens right here</text>
+        </svg>
+
+        <svg class="scene" id="scene-copies" viewBox="0 0 1200 640" role="img" aria-labelledby="copies-title" hidden>
+          <title id="copies-title">Three copies: your library at home, a second copy at home, and a locked copy at a relative's house across town</title>
+          <rect width="1200" height="640" fill="url(#sky)"/>
+          <g fill="#fff"><circle class="twinkle" cx="120" cy="70" r="2"/><circle cx="340" cy="40" r="1.5" opacity=".6"/><circle class="twinkle" cx="620" cy="60" r="2" style="animation-delay:1.2s"/><circle cx="880" cy="36" r="1.5" opacity=".5"/><circle class="twinkle" cx="1110" cy="90" r="2" style="animation-delay:2s"/></g>
+          <g fill="#fff">
+            <circle cx="60" cy="40" r="1" opacity=".45"/><circle cx="420" cy="110" r="1.1" opacity=".4"/><circle cx="500" cy="30" r="1" opacity=".5"/>
+            <circle cx="760" cy="90" r="1.2" opacity=".45"/><circle cx="980" cy="60" r="1" opacity=".5"/><circle cx="1180" cy="30" r="1.1" opacity=".45"/>
+            <circle cx="820" cy="180" r=".9" opacity=".35"/><circle cx="1040" cy="200" r="1" opacity=".3"/><circle cx="700" cy="150" r="1" opacity=".35"/>
+          </g>
+          <g fill="#f7e2a4">
+            <path class="twinkle" d="M460 70 l1.5 4.2 4.2 1.5 -4.2 1.5 -1.5 4.2 -1.5 -4.2 -4.2 -1.5 4.2 -1.5 z" style="animation-delay:.6s"/>
+            <path class="twinkle" d="M1010 130 l1.3 3.7 3.7 1.3 -3.7 1.3 -1.3 3.7 -1.3 -3.7 -3.7 -1.3 3.7 -1.3 z" style="animation-delay:2.2s" opacity=".85"/>
+          </g>
+          <!-- town between the two homes: a far row, then the near row with roofs and lit windows -->
+          <g fill="#1a1325">
+            <rect x="452" y="430" width="26" height="110"/><rect x="540" y="372" width="30" height="168"/><rect x="636" y="398" width="34" height="142"/><rect x="700" y="440" width="30" height="100"/>
+          </g>
+          <g fill="#221930">
+            <rect x="470" y="380" width="40" height="160"/><rect x="514" y="340" width="54" height="200"/><rect x="572" y="400" width="36" height="140"/><rect x="612" y="360" width="46" height="180"/><rect x="662" y="410" width="40" height="130"/>
+            <path d="M568 400 L590 382 L612 400 Z"/><path d="M662 410 L682 394 L702 410 Z"/>
+            <rect x="520" y="330" width="16" height="10"/><rect x="530" y="322" width="4" height="8"/>
+          </g>
+          <path d="M635 360 V338" stroke="#221930" stroke-width="3"/>
+          <circle class="blink" cx="635" cy="337" r="2.4" fill="#f0cc78" style="animation-delay:.5s"/>
+          <g fill="#f0cc78" opacity=".55"><rect x="526" y="360" width="8" height="10"/><rect x="546" y="390" width="8" height="10"/><rect x="624" y="380" width="8" height="10"/><rect x="480" y="410" width="8" height="10"/><rect x="672" y="430" width="8" height="10"/>
+            <rect x="546" y="360" width="8" height="10" opacity=".6"/><rect x="526" y="420" width="8" height="10"/><rect x="546" y="450" width="8" height="10" opacity=".7"/><rect x="494" y="440" width="8" height="10" opacity=".6"/><rect x="480" y="470" width="8" height="10" opacity=".8"/>
+            <rect x="584" y="420" width="8" height="10" opacity=".7"/><rect x="584" y="470" width="8" height="10"/><rect x="640" y="410" width="8" height="10" opacity=".6"/><rect x="624" y="440" width="8" height="10" opacity=".8"/><rect x="640" y="480" width="8" height="10"/>
+            <rect x="686" y="460" width="8" height="10" opacity=".7"/><rect x="586" y="396" width="6" height="7" opacity=".7"/>
+          </g>
+          <g fill="#433559" opacity=".7"><rect x="526" y="390" width="8" height="10"/><rect x="494" y="410" width="8" height="10"/><rect x="640" y="380" width="8" height="10"/><rect x="624" y="410" width="8" height="10"/><rect x="672" y="460" width="8" height="10"/><rect x="526" y="480" width="8" height="10"/></g>
+          <text class="label small" x="586" y="566" text-anchor="middle">across town</text>
+          <path d="M0 540 C 260 510, 520 560, 760 535 C 960 515, 1080 540, 1200 525 L1200 640 L0 640 Z" fill="#1a1325"/>
+          <g fill="none" stroke="#2c213d" stroke-width="2" stroke-linecap="round">
+            <path d="M330 534 q-2 -6 -6 -8 M330 534 q0 -7 1 -11 M330 534 q2 -5 6 -7"/>
+            <path d="M560 543 q-2 -6 -6 -8 M560 543 q0 -7 1 -11 M560 543 q2 -5 6 -7"/>
+            <path d="M780 534 q-2 -6 -6 -8 M780 534 q0 -7 1 -11 M780 534 q2 -5 6 -7"/>
+            <path d="M1180 528 q-2 -6 -6 -8 M1180 528 q0 -7 1 -11 M1180 528 q2 -5 6 -7"/>
+            <path d="M300 600 q-2 -5 -5 -7 M300 600 q0 -6 1 -9 M300 600 q2 -4 5 -6"/>
+            <path d="M700 610 q-2 -5 -5 -7 M700 610 q0 -6 1 -9 M700 610 q2 -4 5 -6"/>
+            <path d="M1050 600 q-2 -5 -5 -7 M1050 600 q0 -6 1 -9 M1050 600 q2 -4 5 -6"/>
+          </g>
+          <!-- a little tree at the far left -->
+          <g pointer-events="none">
+            <rect x="35" y="490" width="7" height="48" fill="#433559"/>
+            <circle cx="38" cy="470" r="20" fill="#2c213d"/><circle cx="24" cy="486" r="13" fill="#2c213d"/><circle cx="53" cy="484" r="14" fill="#2c213d"/>
+            <circle cx="32" cy="462" r="6" fill="#433559" opacity=".7"/><circle cx="50" cy="476" r="4.5" fill="#433559" opacity=".6"/><circle cx="22" cy="482" r="4" fill="#433559" opacity=".6"/>
+          </g>
+
+          <!-- a storm, for why it matters -->
+          <g class="hot" data-key="why" tabindex="0" role="button" aria-label="Why three copies">
+            <path d="M150 120 a26 26 0 0 1 40 -22 a34 34 0 0 1 62 10 a22 22 0 0 1 4 42 h-100 a16 16 0 0 1 -6 -30 z" fill="#433559" stroke="#9d91b2" stroke-width="2"/>
+            <path d="M166 112 a20 20 0 0 1 26 -10 M206 96 a28 28 0 0 1 40 14" fill="none" stroke="#9d91b2" stroke-width="2" stroke-linecap="round" opacity=".45"/>
+            <path d="M160 146 h86" stroke="#2c213d" stroke-width="2" stroke-linecap="round" opacity=".7"/>
+            <path d="M210 152 l-12 22 h14 l-10 22" fill="none" stroke="#f7e2a4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity=".18"/>
+            <path d="M210 152 l-12 22 h14 l-10 22" fill="none" stroke="#f0cc78" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M175 160 l-6 14 M240 160 l-6 14" stroke="#9d7ae0" stroke-width="3" stroke-linecap="round"/>
+            <g stroke="#9d7ae0" stroke-width="2.2" stroke-linecap="round" pointer-events="none">
+              <path class="rain" d="M160 162 l-3 7"/><path class="rain" d="M188 166 l-3 7" style="animation-delay:-.4s"/>
+              <path class="rain" d="M226 164 l-3 7" style="animation-delay:-.8s"/><path class="rain" d="M252 160 l-3 7" style="animation-delay:-.2s"/>
+              <path class="rain" d="M168 180 l-3 7" style="animation-delay:-1s"/><path class="rain" d="M244 182 l-3 7" style="animation-delay:-.6s"/>
+              <path class="rain" d="M184 186 l-3 7" style="animation-delay:-.9s"/>
+            </g>
+            <rect class="halo" x="132" y="80" width="140" height="124" rx="14"/>
+            <g class="pin" transform="translate(272 96)"><circle class="pulse" r="12"/><circle class="ring" r="12"/><text>+</text></g>
+          </g>
+
+          <!-- 1: your library -->
+          <g class="hot" data-key="first" tabindex="0" role="button" aria-label="Copy one: your library">
+            <rect x="106" y="266" width="22" height="44" fill="#433559"/>
+            <path d="M106 278 H128 M106 290 H128 M117 266 V278 M112 278 V290 M122 278 V290" stroke="#2c213d" stroke-width="1.5"/>
+            <rect x="102" y="260" width="30" height="8" rx="2" fill="#2c213d" stroke="#433559" stroke-width="1.5"/>
+            <path d="M70 330 L190 240 L310 330 Z" fill="#3d1f78"/>
+            <path d="M70 330 L190 240 L310 330 Z" fill="url(#shingles)" opacity=".3"/>
+            <path d="M70 330 L190 240 L310 330 Z" fill="none" stroke="#d9aa45" stroke-width="4" stroke-linejoin="round"/>
+            <rect x="86" y="330" width="208" height="200" fill="#2c213d" stroke="#433559" stroke-width="3"/>
+            <path d="M89 342 H291" stroke="#433559" stroke-width="2" opacity=".6"/>
+            <rect x="236" y="458" width="40" height="72" rx="3" fill="#a8771f"/>
+            <rect x="242" y="466" width="28" height="24" rx="2" fill="none" stroke="#7a5a1c" stroke-width="2"/>
+            <rect x="242" y="496" width="28" height="26" rx="2" fill="none" stroke="#7a5a1c" stroke-width="2"/>
+            <circle cx="268" cy="494" r="2.6" fill="#f0cc78"/>
+            <rect x="230" y="526" width="52" height="5" rx="2" fill="#433559"/>
+            <ellipse cx="155" cy="392" rx="60" ry="40" fill="url(#warm)"/>
+            <rect x="110" y="360" width="90" height="64" rx="6" fill="#100b17" stroke="#cfc5de" stroke-width="2.5"/>
+            <rect x="116" y="366" width="78" height="52" rx="3" fill="url(#screen)"/>
+            <rect x="122" y="372" width="20" height="15" rx="2" fill="#f0cc78" opacity=".9"/><rect x="145" y="372" width="20" height="15" rx="2" fill="#9d7ae0"/><rect x="168" y="372" width="20" height="15" rx="2" fill="#4cc38a" opacity=".8"/>
+            <rect x="122" y="391" width="20" height="15" rx="2" fill="#9d7ae0" opacity=".7"/><rect x="145" y="391" width="20" height="15" rx="2" fill="#f7e2a4" opacity=".8"/><rect x="168" y="391" width="20" height="15" rx="2" fill="#d9aa45"/>
+            <rect x="148" y="424" width="14" height="6" fill="#cfc5de"/><rect x="138" y="429" width="34" height="4" rx="2" fill="#cfc5de"/>
+            <rect x="214" y="392" width="46" height="34" rx="5" fill="#d9aa45" stroke="#100b17" stroke-width="2"/>
+            <path d="M222 418 l8 -8 6 5 5 -5 9 8 z" fill="#100b17"/>
+            <circle cx="250" cy="402" r="2.4" fill="#100b17"/>
+            <circle class="blink" cx="254" cy="420" r="1.8" fill="#4cc38a"/>
+            <rect class="halo" x="62" y="232" width="256" height="306" rx="14"/>
+            <g class="pin" transform="translate(300 330)"><circle class="pulse" r="13" style="animation-delay:.4s"/><circle class="ring" r="13"/><text>1</text></g>
+          </g>
+          <text class="label" x="190" y="566" text-anchor="middle">Your library</text>
+
+          <!-- 2: a copy at home -->
+          <path class="flow" d="M294 430 C 330 430, 330 470, 360 470" fill="none" stroke="#f0cc78" stroke-width="4" stroke-linecap="round"/>
+          <g class="hot" data-key="second" tabindex="0" role="button" aria-label="Copy two: a copy at home">
+            <rect x="350" y="440" width="96" height="90" rx="8" fill="#433559"/>
+            <rect x="362" y="452" width="72" height="34" rx="6" fill="#9d7ae0" stroke="#100b17" stroke-width="2"/>
+            <rect x="370" y="459" width="40" height="20" rx="2" fill="#100b17"/>
+            <path d="M373 476 L382 467 L389 473 L394 468 L407 476 Z" fill="#f7e2a4"/>
+            <circle cx="402" cy="465" r="2" fill="#f7e2a4"/>
+            <rect x="362" y="494" width="72" height="26" rx="5" fill="#2c213d" stroke="#cfc5de" stroke-width="1.5"/>
+            <path d="M370 507 H400" stroke="#433559" stroke-width="2" stroke-linecap="round"/>
+            <circle class="blink" cx="424" cy="507" r="2.2" fill="#4cc38a" style="animation-delay:.5s"/>
+            <circle cx="424" cy="470" r="2" fill="#4cc38a"/>
+            <rect x="356" y="530" width="10" height="4" rx="1.5" fill="#2c213d"/><rect x="430" y="530" width="10" height="4" rx="1.5" fill="#2c213d"/>
+            <rect class="halo" x="340" y="430" width="116" height="108" rx="12"/>
+            <g class="pin" transform="translate(398 432)"><circle class="pulse" r="12" style="animation-delay:.9s"/><circle class="ring" r="12"/><text>2</text></g>
+          </g>
+          <text class="label" x="398" y="566" text-anchor="middle">A copy at home</text>
+
+          <!-- the locked line across town -->
+          <g class="hot" data-key="across" tabindex="0" role="button" aria-label="Getting the copy across town">
+            <path d="M446 470 C 560 270, 760 270, 880 420" fill="none" stroke="#a8771f" stroke-width="16" stroke-linecap="round" opacity=".9"/>
+            <path d="M446 470 C 560 270, 760 270, 880 420" fill="none" stroke="#f0cc78" stroke-width="10" stroke-linecap="round"/>
+            <path class="flow" d="M446 470 C 560 270, 760 270, 880 420" fill="none" stroke="#2c213d" stroke-width="4" stroke-linecap="round"/>
+            <g transform="translate(664 318)">
+              <rect x="-14" y="-6" width="28" height="22" rx="4" fill="#d9aa45" stroke="#100b17" stroke-width="2"/>
+              <path d="M-8 -6 v-6 a8 8 0 0 1 16 0 v6" fill="none" stroke="#100b17" stroke-width="3"/>
+            </g>
+            <path d="M446 470 C 560 270, 760 270, 880 420" fill="none" stroke="transparent" stroke-width="40" pointer-events="stroke"/>
+            <g class="pin" transform="translate(560 336)"><circle class="pulse" r="12" style="animation-delay:.2s"/><circle class="ring" r="12"/><text>+</text></g>
+          </g>
+
+          <!-- 3: a copy away from home -->
+          <g class="hot" data-key="third" tabindex="0" role="button" aria-label="Copy three: a copy away from home">
+            <rect x="1126" y="486" width="8" height="44" fill="#433559"/>
+            <path d="M1130 506 l-9 -9 M1130 498 l8 -7" stroke="#433559" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="1130" cy="466" r="28" fill="#2c213d"/><circle cx="1110" cy="484" r="18" fill="#2c213d"/><circle cx="1150" cy="482" r="19" fill="#2c213d"/>
+            <circle cx="1120" cy="456" r="8" fill="#433559" opacity=".7"/><circle cx="1146" cy="470" r="6" fill="#433559" opacity=".6"/><circle cx="1104" cy="478" r="5" fill="#433559" opacity=".6"/><circle cx="1134" cy="448" r="4" fill="#433559" opacity=".5"/>
+            <rect x="1008" y="296" width="22" height="44" fill="#433559"/>
+            <path d="M1008 308 H1030 M1008 320 H1030 M1019 296 V308 M1014 308 V320 M1024 308 V320" stroke="#2c213d" stroke-width="1.5"/>
+            <rect x="1004" y="290" width="30" height="8" rx="2" fill="#2c213d" stroke="#433559" stroke-width="1.5"/>
+            <path d="M830 360 L950 280 L1070 360 Z" fill="#5b33a8"/>
+            <path d="M830 360 L950 280 L1070 360 Z" fill="url(#shingles)" opacity=".3"/>
+            <path d="M830 360 L950 280 L1070 360 Z" fill="none" stroke="#d9aa45" stroke-width="4" stroke-linejoin="round"/>
+            <rect x="846" y="360" width="208" height="170" fill="#2c213d" stroke="#433559" stroke-width="3"/>
+            <path d="M849 372 H1051" stroke="#433559" stroke-width="2" opacity=".6"/>
+            <ellipse cx="914" cy="418" rx="64" ry="46" fill="url(#warm)"/>
+            <rect x="878" y="390" width="72" height="56" rx="4" fill="#f7e2a4" opacity=".85"/>
+            <path d="M880 392 C 890 400, 892 414, 888 444 L880 444 Z M948 392 C 938 400, 936 414, 940 444 L948 444 Z" fill="#d9aa45" opacity=".55"/>
+            <path d="M914 390 V446 M878 418 H950" stroke="#a8771f" stroke-width="3"/>
+            <rect x="872" y="446" width="84" height="6" rx="2" fill="#a8771f"/>
+            <path d="M880 446 c 2 -8, 8 -8, 10 0 M896 446 c 2 -9, 9 -9, 11 0 M914 446 c 2 -8, 8 -8, 10 0 M930 446 c 2 -9, 9 -9, 11 0" fill="#4cc38a" opacity=".8"/>
+            <circle cx="886" cy="441" r="2" fill="#f0cc78"/><circle cx="919" cy="440" r="2" fill="#9d7ae0"/><circle cx="936" cy="441" r="2" fill="#f7e2a4"/>
+            <!-- the locked box: the relative can keep it, never open it -->
+            <rect x="970" y="420" width="62" height="48" rx="6" fill="#433559" stroke="#d9aa45" stroke-width="3"/>
+            <path d="M988 420 v-10 a13 13 0 0 1 26 0 v10" fill="none" stroke="#d9aa45" stroke-width="4"/>
+            <circle cx="1001" cy="442" r="5" fill="#d9aa45"/><rect x="999" y="444" width="4" height="10" fill="#d9aa45"/>
+            <rect x="900" y="470" width="44" height="60" rx="3" fill="#a8771f"/>
+            <rect x="906" y="477" width="32" height="20" rx="2" fill="none" stroke="#7a5a1c" stroke-width="2"/>
+            <rect x="906" y="502" width="32" height="22" rx="2" fill="none" stroke="#7a5a1c" stroke-width="2"/>
+            <circle cx="936" cy="500" r="2.6" fill="#f0cc78"/>
+            <rect x="894" y="526" width="56" height="5" rx="2" fill="#433559"/>
+            <circle cx="950" cy="230" r="0"/>
+            <rect class="halo" x="822" y="272" width="256" height="266" rx="14"/>
+            <g class="pin" transform="translate(1062 360)"><circle class="pulse" r="13" style="animation-delay:1.3s"/><circle class="ring" r="13"/><text>3</text></g>
+          </g>
+          <text class="label" x="950" y="566" text-anchor="middle">A copy away from home · coming soon</text>
+          <g fill="#9d91b2" pointer-events="none">
+            <circle class="smoke" cx="1019" cy="278" r="6" opacity=".28"/>
+            <circle class="smoke" cx="1024" cy="264" r="8" opacity=".2" style="animation-delay:-2.3s"/>
+            <circle class="smoke" cx="1031" cy="248" r="10" opacity=".12" style="animation-delay:-4.6s"/>
+          </g>
+
+          <!-- the recovery key -->
+          <g class="hot" data-key="key" tabindex="0" role="button" aria-label="Your recovery key">
+            <g transform="translate(150 600) rotate(-12)">
+              <circle r="14" fill="none" stroke="#f0cc78" stroke-width="6"/>
+              <path d="M14 0 H58 M44 0 v10 M54 0 v8" stroke="#f0cc78" stroke-width="6" stroke-linecap="round"/>
+              <path d="M -13 -5 A 14 14 0 0 1 -4 -13.4" fill="none" stroke="#fbf8f3" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+              <path d="M20 -1.2 H40" stroke="#a8771f" stroke-width="1.4" stroke-linecap="round" opacity=".7"/>
+            </g>
+            <rect class="halo" x="120" y="570" width="110" height="56" rx="10"/>
+            <g class="pin" transform="translate(236 586)"><circle class="pulse" r="11" style="animation-delay:1.8s"/><circle class="ring" r="11"/><text>+</text></g>
+          </g>
+        </svg>
+      </div>
+
+      <div class="story" id="story" aria-live="polite">
+        <button type="button" class="play" id="play">▶ Watch it connect</button>
+        <div class="say" id="say"><b>The story</b><span>Six small steps, from opening the app to your photos on the screen.</span></div>
+        <div class="nav">
+          <button type="button" class="step" id="prev" aria-label="Previous step" disabled>‹</button>
+          <div class="dots" id="dots"></div>
+          <button type="button" class="step" id="next" aria-label="Next step">›</button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+
+  <footer>
+    MemorMe uses Cloudflare to run its small server and the switchboard. Your photos stay on your own computer, and nothing about
+    you is sold or shared. More in the guide, under “Privacy in plain words”. Copies away from home are coming soon.
+  </footer>
+</div>
+
+<script>
+(function () {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const $ = (s) => document.querySelector(s)
+  const panel = $('#panel')
+  let scene = 'connect'
+  let mode = 'direct'
+  let selected = null
+
+  // ---------------------------------------------------------------- what each thing says
+  const CROSS = `
+    <svg class="cross" viewBox="0 0 320 210" aria-hidden="true">
+      <circle cx="110" cy="105" r="92" fill="#f0cc78"/>
+      <circle cx="110" cy="105" r="92" fill="none" stroke="#a8771f" stroke-width="4"/>
+      <circle cx="110" cy="105" r="70" fill="#9d7ae0"/>
+      <circle cx="110" cy="105" r="50" fill="#1a1325"/>
+      <g class="spin">
+        <g transform="translate(92 86)"><rect width="22" height="17" rx="2" fill="#f7e2a4"/><path d="M3 14 L9 8 L13 12 L16 9 L20 14 Z" fill="#a8771f"/></g>
+        <g transform="translate(118 108)"><rect width="20" height="15" rx="2" fill="#4cc38a"/><path d="M4 5 H16 M4 9 H13" stroke="#1a1325" stroke-width="2"/></g>
+        <g transform="translate(86 112)"><rect width="16" height="13" rx="2" fill="#cfc5de"/></g>
+      </g>
+      <path d="M 196 50 L 228 40" stroke="#cfc5de" stroke-width="1.5"/><text x="232" y="44">Outer lock</text>
+      <path d="M 176 92 L 228 84" stroke="#cfc5de" stroke-width="1.5"/><text x="232" y="88">Inner lock</text>
+      <path d="M 146 140 L 228 150" stroke="#cfc5de" stroke-width="1.5"/><text x="232" y="154">Your photos</text>
+    </svg>`
+
+  const SCENES = {
+    connect: {
+      start: ['Your phone', 'Tap anything in the picture', `Your photos stay on your computer at home. Your phone looks at them through a locked tunnel. Cloudflare’s switchboard helps the two find each other.`],
+      order: ['phone', 'note', 'switchboard', 'cord', 'computer', 'drive', 'router', 'network'],
+      things: {
+        computer: ['At home', 'Your computer', `<p>MemorMe lives here, and so do your photos. When your phone asks for a photo, your computer sends a copy through the locked tunnel. The original stays put.</p>
+          <p>The computer must be on, with MemorMe running. Closing the window is fine: with a phone paired, MemorMe waits quietly near the clock.</p>`, 'Your computer'],
+        drive: ['At home', 'Your photo library', `<p>Every photo, exactly as it was taken, on a drive you own.</p>
+          <p>Your phone only looks. It keeps tiny blurred placeholders, and wipes the full pictures when MemorMe closes or locks.</p>`, 'Your library'],
+        router: ['At home', 'Your home router', `<p>The little box with blinking lights that connects your house to the internet.</p>
+          <p>Usually your phone and computer can connect in a straight line. If a strict router won’t allow it, the tunnel runs through the switchboard instead. MemorMe sorts this out by itself.</p>`, 'Your router'],
+        switchboard: ['In between', 'Cloudflare’s switchboard', `<p>Your phone and computer need help finding each other on the internet. MemorMe uses <strong>Cloudflare</strong>, a large internet company, as the operator.</p>
+          <ul><li>They pass on the sealed “let’s connect” note.</li><li>When there’s no straight line, the locked tunnel runs through their switchboard.</li><li>They also run MemorMe’s small server.</li></ul>
+          <div class="seen"><div class="yes"><b>They see</b>That a connection happens, and how much data</div><div class="no"><b>They never see</b>Photos, names, places or searches</div></div>`, 'The switchboard'],
+        note: ['Step one', 'The sealed “let’s connect” note', `<p>When you open MemorMe on your phone, a short note goes to your computer: “this phone would like to connect”. The operator passes it on unopened.</p>
+          <p>It holds no photos, names, places or searches. MemorMe’s server keeps only random IDs for your devices, when they last connected, and how much went through the switchboard each month.</p>`, 'The note'],
+        cord: ['Up close', 'The locked tunnel', `${CROSS}<p>Your photos travel inside as sealed parcels, behind two locks:</p>
+          <ul><li><strong>Outer lock:</strong> the tunnel itself, locked the way video calls are.</li><li><strong>Inner lock:</strong> MemorMe’s own, with keys made when you paired your phone. Only your phone and your computer have them.</li></ul>
+          <p>Anyone along the way, the operator included, sees only how much goes by, never what’s inside. The tunnel is the same whether it runs straight or through the switchboard: try the buttons above the picture.</p>`, 'The tunnel'],
+        phone: ['Out and about', 'You, with MemorMe Pocket', `<p>MemorMe Pocket opens your library at home from anywhere: Library, People, Places, Events, Albums, search and On this day. Send or save any photo at full quality.</p>
+          <ul><li>It can’t edit or delete anything. The heart is its only change.</li><li><strong>Lock MemorMe</strong> asks for your face, fingerprint or passcode.</li><li><strong>Remove location</strong> takes the place out of a photo you send.</li></ul>
+          <p>Pair once: scan the code in <strong>Settings › Your phone</strong>.</p>`, 'Your phone'],
+        network: ['Out and about', 'Your phone network', `<p>Your phone gets online through Wi-Fi or its mobile network.</p>
+          <p>Some mobile networks don’t allow a straight line, so the tunnel runs through the switchboard. It’s just as locked. <strong>Data Saving Mode</strong>, in MemorMe’s Settings on your phone, keeps mobile data use low.</p>`, 'Phone network']
+      }
+    },
+    home: {
+      start: ['Inside your home', 'Everything clever happens right here', `Faces, search, events and more are all worked out on your own computer. Tap anything to see how photos come in and where they live.`],
+      order: ['ai', 'library', 'backup', 'cable', 'card', 'scans', 'services', 'family', 'homenet'],
+      things: {
+        ai: ['On your computer', 'The clever parts', `<p>MemorMe recognises faces, finds “the beach at sunset” when you type it, reads the words on a birthday card, sorts photos into events and trips, and spots duplicates.</p>
+          <p><strong>It all happens on this computer.</strong> Your pictures aren’t sent anywhere to be looked at, and they’re never used to train anyone’s AI. After a one-time download, it works without the internet.</p>
+          <p>Anything MemorMe worked out by itself has a little sparkle. One click puts it right.</p>`, 'The clever parts'],
+        library: ['On your computer', 'Your library', `<p>A plain folder on a drive you choose, with every original exactly as it was taken.</p>
+          <p>Turns, crops, “Fix it” and names are kept beside the photo, never written into it, so <strong>Back to the original</strong> always works. Every change is in History, with Undo.</p>`, 'Your library'],
+        backup: ['Keep a copy', 'A second drive', `<p>In <strong>Settings › Keep a copy</strong>, choose another drive and MemorMe keeps a full copy of the library there, following every change within seconds.</p>
+          <p>It spot-checks the copy every week, and tells you if the drive has been unplugged a while or is nearly full. If the main drive ever fails, open the copy and carry on.</p>`, 'Second drive'],
+        cable: ['Bringing photos in', 'A phone, by cable', `<p>Plug in a phone and unlock it. MemorMe counts what’s new and asks first: <strong>Bring in the 214 new photos?</strong></p>
+          <ul><li>Photos you already have are skipped.</li><li>Big videos come last, so the rest isn’t held up.</li><li>Nothing on the phone is changed.</li></ul>`, 'Phone by cable'],
+        card: ['Bringing photos in', 'A camera card', `<p>Put in a camera’s SD card and MemorMe asks first: <strong>SD card (E:) · 312 new photos. Bring them in?</strong></p>
+          <p>Only what’s new comes in, the card is never changed, and MemorMe tells you when it’s safe to take it out.</p>`, 'Camera card'],
+        scans: ['Old prints', 'A scanner and a box of prints', `<p>Scan a few prints at once. MemorMe finds each one and offers <strong>Split them</strong>: separate photos, cut and straightened.</p>
+          <ul><li><strong>When were these taken?</strong> lets you date a whole batch at once: “Christmas 1987”, “the 80s”.</li><li>Scan the back of a print and MemorMe reads a written date, for you to confirm.</li><li><strong>This is a negative</strong> turns a photo of a negative into a picture. <strong>Restore faded colour</strong> brings old prints back.</li></ul>`, 'Old prints'],
+        services: ['Bringing photos in', 'Photos from online services', `<p>Google Photos, iCloud, Facebook, Instagram, Snapchat, Shutterfly and Amazon Photos all let you download your photos. The Import screen shows how for each one.</p>
+          <p>MemorMe spots the download, brings the photos in, and recovers their dates, places and captions. Photos you already have are skipped.</p>`, 'Online services'],
+        family: ['The family library', 'A family computer', `<p>Up to five computers at home can share one library. Everyone can look, name, tidy up and bring photos in, and each photo remembers who added it.</p>
+          <p>To join, type the 6-digit code shown on the computer that has the drive. Each computer needs its own product key.</p>`, 'Family computer'],
+        homenet: ['The family library', 'Your home network', `<p>The family library talks only over your home network, by Wi-Fi or cable. <strong>It never goes through the internet</strong>, and the switchboard isn’t involved.</p>
+          <p>If Windows asks whether MemorMe may use your network, choose Allow.</p>`, 'Home network']
+      }
+    },
+    copies: {
+      start: ['Keeping it safe', 'Three copies, three kinds of bad day', `A second copy at home covers a worn-out drive. A copy somewhere else covers fire, flood and theft. <strong>Settings › Keep a copy</strong> shows how many you have.`],
+      order: ['why', 'first', 'second', 'across', 'third', 'key'],
+      things: {
+        why: ['Why it matters', 'Why three copies', `<p>Owning your photos means looking after them. Each copy covers a different bad day:</p>
+          <ul><li><strong>A drive wears out:</strong> a second copy at home saves you.</li><li><strong>A mistake:</strong> Recently removed keeps photos for 30 days, and every change has Undo.</li><li><strong>Fire, flood or theft:</strong> only a copy somewhere else saves you.</li></ul>
+          <p>Three green checks and you’re well protected.</p>`, 'Why three'],
+        first: ['Copy one', 'Your library', `<p>The photos on your drive at home, exactly as they were taken. This is the copy you use every day.</p>`, 'Your library'],
+        second: ['Copy two', 'A copy at home', `<p>Another drive on this computer, or another family computer in the house. It follows every change within seconds and is checked every week.</p>
+          <p>It’s a whole library: if the first is lost, open this one and carry on.</p>`, 'A copy at home'],
+        across: ['Coming soon', 'Getting the copy across town', `<p>The copy goes straight from your computer to your relative’s, locked before it leaves your home.</p>
+          <p>If the two computers can’t connect directly, the copy waits and MemorMe explains what usually helps. You can also ask MemorMe to carry it through the switchboard. Someone at MemorMe approves each request, and the copy stays locked all the way.</p>`, 'Across town'],
+        third: ['Coming soon', 'A copy away from home', `<p>A relative who also uses MemorMe can keep a copy of your library at their house, and you can keep theirs. You share a backup code (never your product key), and they say yes.</p>
+          <p><strong>They can’t open it.</strong> It’s locked with a key only you have. They see a box taking up space, never your photos, names or places.</p>`, 'Away from home'],
+        key: ['Coming soon', 'Your recovery key', `<p>When you set up a copy away from home, MemorMe gives you a recovery key to print and keep somewhere safe.</p>
+          <p>If your computer is ever lost, that key unlocks the copy at your relative’s house so you get everything back. Without it, nobody can open the copy, MemorMe included.</p>`, 'Recovery key']
+      }
+    }
+  }
+
+  function home() {
+    const s = SCENES[scene]
+    panel.innerHTML = `<div class="eyebrow">${s.start[0]}</div><h2>${s.start[1]}</h2><p>${s.start[2]}</p>
+      <ul class="things">${s.order.map((k) => `<li><button type="button" data-open="${k}">${s.things[k][3]}</button></li>`).join('')}</ul>`
+  }
+  function hots() { return document.querySelectorAll(`#scene-${scene} .hot`) }
+  function show(key) {
+    const t = SCENES[scene].things[key]
+    if (!t) return home()
+    selected = key
+    panel.innerHTML = `<div class="eyebrow">${t[0]}</div><h2>${t[1]}</h2>${t[2]}<button type="button" class="back" data-open="">← Everything in the picture</button>`
+    hots().forEach((h) => h.classList.toggle('is-on', h.dataset.key === key))
+    if (scene === 'connect') zoomTo(key === 'cord' ? cordBox() : FULL)
+    if (window.innerWidth <= 960) panel.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' })
+  }
+  function clear() {
+    selected = null
+    hots().forEach((h) => h.classList.remove('is-on'))
+    if (scene === 'connect') zoomTo(FULL)
+    home()
+  }
+  panel.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-open]')
+    if (!b) return
+    stopStory(true)
+    b.dataset.open ? show(b.dataset.open) : clear()
+  })
+  document.querySelectorAll('.hot').forEach((h) => {
+    const go = () => { stopStory(true); show(h.dataset.key) }
+    h.addEventListener('click', go)
+    h.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go() } })
+  })
+
+  // ---------------------------------------------------------------- scenes (tabs)
+  const TABS = ['connect', 'home', 'copies']
+  function setScene(s) {
+    stopStory(true)
+    scene = s
+    TABS.forEach((k) => {
+      $(`#scene-${k}`).toggleAttribute('hidden', k !== s)
+      const tab = $(`#tab-${k}`)
+      tab.setAttribute('aria-selected', String(k === s))
+      tab.tabIndex = k === s ? 0 : -1
+    })
+    $('#modes').hidden = s !== 'connect'
+    $('#story').hidden = s !== 'connect'
+    selected = null
+    document.querySelectorAll('.hot').forEach((h) => h.classList.remove('is-on'))
+    if (s === 'connect') { vb = FULL.slice(); $('#scene-connect').setAttribute('viewBox', vb.join(' ')) }
+    home()
+    try { history.replaceState(null, '', s === 'connect' ? location.pathname + location.search : `#${s}`) } catch (e) { /* not allowed here */ }
+  }
+  TABS.forEach((k, i) => {
+    const tab = $(`#tab-${k}`)
+    tab.addEventListener('click', () => setScene(k))
+    tab.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+      const next = TABS[(i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length]
+      setScene(next)
+      $(`#tab-${next}`).focus()
+    })
+  })
+
+  // ---------------------------------------------------------------- zoom (the phone scene’s viewBox)
+  const svg = $('#scene-connect')
+  const FULL = [0, 0, 1200, 640]
+  let vb = FULL.slice()
+  let zoomAnim = 0
+  const cordBox = () => (mode === 'direct' ? [230, 300, 760, 340] : [220, 110, 780, 360])
+  function zoomTo(target) {
+    cancelAnimationFrame(zoomAnim)
+    const from = vb.slice()
+    if (reduce) { vb = target.slice(); svg.setAttribute('viewBox', vb.join(' ')); return }
+    const t0 = performance.now()
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / 650)
+      const e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2
+      vb = from.map((v, i) => v + (target[i] - v) * e)
+      svg.setAttribute('viewBox', vb.join(' '))
+      if (k < 1) zoomAnim = requestAnimationFrame(step)
+    }
+    zoomAnim = requestAnimationFrame(step)
+  }
+
+  // ---------------------------------------------------------------- straight line / switchboard
+  function setMode(m) {
+    mode = m
+    $('#mode-direct').setAttribute('aria-pressed', String(m === 'direct'))
+    $('#mode-relay').setAttribute('aria-pressed', String(m === 'relay'))
+    $('#cord-direct').setAttribute('opacity', m === 'direct' ? '1' : '0')
+    $('#cord-relay').setAttribute('opacity', m === 'relay' ? '1' : '0')
+    const p = $(m === 'direct' ? '#track-direct' : '#track-relay')
+    $('#cord-hit').setAttribute('d', p.getAttribute('d'))
+    const mid = p.getPointAtLength(p.getTotalLength() * (m === 'direct' ? .5 : .3))
+    $('#pin-cord').setAttribute('transform', `translate(${mid.x.toFixed(1)} ${mid.y.toFixed(1)})`)
+    $('#cord-label').textContent = m === 'direct'
+      ? 'The locked tunnel, straight from your phone to your computer'
+      : 'No straight line? The same tunnel runs through the switchboard'
+    if (selected === 'cord') zoomTo(cordBox())
+  }
+  $('#mode-direct').addEventListener('click', () => { stopStory(true); setMode('direct') })
+  $('#mode-relay').addEventListener('click', () => { stopStory(true); setMode('relay') })
+
+  // ---------------------------------------------------------------- parcels and the note
+  const NS = 'http://www.w3.org/2000/svg'
+  const parcels = $('#parcels')
+  const colors = ['#f7e2a4', '#4cc38a', '#f0cc78', '#cfc5de', '#9d7ae0', '#f7e2a4']
+  const parcelEls = colors.map((c) => {
+    const g = document.createElementNS(NS, 'g')
+    g.innerHTML = `<rect x="-7" y="-5.5" width="14" height="11" rx="2" fill="${c}" stroke="#100b17" stroke-width="1.5"/>`
+    parcels.appendChild(g)
+    return g
+  })
+  let showParcels = true
+  let note = { seg: null, t0: 0 }
+  function place(el, path, f) {
+    const p = path.getPointAtLength(path.getTotalLength() * f)
+    el.setAttribute('transform', `translate(${p.x.toFixed(1)} ${p.y.toFixed(1)})`)
+  }
+  function frame(now) {
+    if (scene === 'connect') {
+      const track = $(mode === 'direct' ? '#track-direct' : '#track-relay')
+      parcelEls.forEach((el, i) => {
+        el.style.display = showParcels ? '' : 'none'
+        if (showParcels) place(el, track, reduce ? (i + .5) / parcelEls.length : ((now / 5200) + i / parcelEls.length) % 1)
+      })
+      if (note.seg) place($('#note'), $(note.seg), reduce ? 1 : Math.min(1, (now - note.t0) / 1800))
+    }
+    if (!reduce) requestAnimationFrame(frame)
+  }
+  function sendNote(seg) { note = { seg, t0: performance.now() }; if (reduce) frame(0) }
+  // at rest (before and after the story) the note waits at the switchboard, where the dotted line from the phone ends
+  function parkNote() { note = { seg: null, t0: 0 }; place($('#note'), $('#note-a'), 1) }
+  function noteAt(seg, f) { note = { seg: null, t0: 0 }; place($('#note'), $(seg), f) }
+
+  // ---------------------------------------------------------------- the story
+  const STEPS = [
+    { say: 'You open MemorMe on your phone, wherever you are.', key: 'phone', run() { setMode('direct'); showParcels = false; noteAt('#note-a', 0) } },
+    { say: 'A sealed “let’s connect” note goes to Cloudflare’s switchboard. No photos, no names.', key: 'note', run() { showParcels = false; sendNote('#note-a') } },
+    { say: 'The operator passes the note, unopened, to your computer at home.', key: 'switchboard', run() { showParcels = false; sendNote('#note-b') } },
+    { say: 'Your phone and computer open a locked tunnel between them.', key: 'cord', run() { showParcels = false; setMode('direct'); noteAt('#note-b', 1) } },
+    { say: 'Your photos travel through it as sealed parcels, locked twice.', key: 'drive', run() { showParcels = true; setMode('direct'); noteAt('#note-b', 1) } },
+    { say: 'No straight line? The tunnel runs through the switchboard. The operator still can’t see inside.', key: 'switchboard', run() { showParcels = true; setMode('relay'); noteAt('#note-b', 1) } }
+  ]
+  let at = -1
+  let timer = 0
+  const dots = $('#dots')
+  STEPS.forEach((_, i) => {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.setAttribute('aria-label', `Step ${i + 1}`)
+    b.addEventListener('click', () => { stopStory(); go(i) })
+    dots.appendChild(b)
+  })
+  function go(i) {
+    at = i
+    const s = STEPS[i]
+    s.run()
+    $('#say').innerHTML = `<b>Step ${i + 1} of ${STEPS.length}</b><span>${s.say}</span>`
+    ;[...dots.children].forEach((d, j) => (j === i ? d.setAttribute('aria-current', 'step') : d.removeAttribute('aria-current')))
+    $('#prev').disabled = i <= 0
+    $('#next').disabled = i >= STEPS.length - 1
+    hots().forEach((h) => h.classList.toggle('is-on', h.dataset.key === s.key))
+    selected = null
+    zoomTo(FULL)
+    if (!timer) $('#play').textContent = i >= STEPS.length - 1 ? '↺ Watch again' : '▶ Watch it connect'
+  }
+  function stopStory(park) {
+    if (timer) clearTimeout(timer)
+    timer = 0
+    $('#play').textContent = at >= STEPS.length - 1 ? '↺ Watch again' : '▶ Watch it connect'
+    if (park) { parkNote(); showParcels = true }
+  }
+  function playFrom(i) {
+    go(i)
+    if (i < STEPS.length - 1) timer = setTimeout(() => playFrom(i + 1), 3800)
+    else timer = setTimeout(() => { stopStory(true) }, 3800)
+  }
+  $('#play').addEventListener('click', () => {
+    if (timer) { stopStory(); return }
+    playFrom(at >= 0 && at < STEPS.length - 1 ? at : 0)
+    if (timer) $('#play').textContent = '❚❚ Pause'
+  })
+  $('#prev').addEventListener('click', () => { stopStory(); go(Math.max(0, at - 1)) })
+  $('#next').addEventListener('click', () => { stopStory(); go(Math.min(STEPS.length - 1, at + 1)) })
+
+  // ---------------------------------------------------------------- start
+  setMode('direct')
+  parkNote()
+  if (reduce) frame(0); else requestAnimationFrame(frame)
+  const fromHash = (location.hash || '').slice(1)
+  setScene(TABS.includes(fromHash) ? fromHash : 'connect')
+  window.addEventListener('hashchange', () => {
+    const h = (location.hash || '').slice(1)
+    if (TABS.includes(h) && h !== scene) setScene(h)
+  })
+})()
+</script>
+
+</body>
+</html>

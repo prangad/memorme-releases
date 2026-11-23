@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MemorMe Guide</title>
+<meta name="description" content="What MemorMe is, how it differs from cloud photo services, and how to use it: bringing photos in (phones, SD cards, scans and old prints), finding them, reliving them, your phone, the family library, keeping a copy, and privacy in plain words.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  /* ===== MemorMe colours (frontend/src/renderer/styles/base.css) ===== */
+  :root {
+    --plum-0: #100b17;
+    --plum-1: #150f1e;
+    --plum-2: #1a1325;
+    --plum-3: #221930;
+    --plum-4: #2c213d;
+    --plum-border: #2e2440;
+    --plum-border-strong: #433559;
+    --ink-on-plum: #f0ebf6;
+    --ink-on-plum-2: #cfc5de;
+    --muted-on-plum: #9d91b2;
+    --lilac: #9d7ae0;
+    --lilac-deep: #5b33a8;
+    --gold: #d9aa45;
+    --gold-light: #f0cc78;
+    --gold-pale: #f7e2a4;
+    --gold-dark: #a8771f;
+    --gold-metal: linear-gradient(135deg, #f7e2a4 0%, #d9aa45 38%, #a8771f 58%, #e8c56c 100%);
+    --good: #4cc38a;
+
+    /* the guide's reading pages: warm paper (prints without eating ink) */
+    --paper: #fbf8f3;
+    --paper-2: #f3eee6;
+    --ink: #221a2e;
+    --ink-2: #4a405a;
+    --ink-muted: #7a6f8c;
+    --rule: #e4dcd0;
+    --plum-text: #3d1f78;
+
+    --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --sans: 'Source Sans 3', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    --measure: 68ch;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--plum-0);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 { font-family: var(--serif); font-weight: 500; line-height: 1.15; margin: 0; letter-spacing: -0.005em; }
+  p { margin: 0 0 1em; }
+  a { color: var(--plum-text); text-decoration-color: rgba(61, 31, 120, 0.35); }
+  strong { font-weight: 600; }
+  em { font-style: italic; }
+  ul, ol { margin: 0 0 1em; padding-left: 1.3em; }
+  li { margin: 0.25em 0; }
+  li::marker { color: var(--gold-dark); }
+  kbd {
+    font-family: var(--sans); font-size: 0.85em; font-weight: 600;
+    padding: 0.05em 0.45em; border-radius: 5px;
+    background: var(--paper-2); border: 1px solid var(--rule); border-bottom-width: 2px;
+    color: var(--ink-2); white-space: nowrap;
+  }
+  .ui { font-weight: 600; color: var(--plum-text); white-space: nowrap; }
+
+  /* ===== Shell ===== */
+  .page { max-width: 880px; margin: 0 auto; padding: 0 16px; }
+  .sheet {
+    background: var(--paper);
+    margin: 28px auto;
+    padding: 56px 64px 64px;
+    border-radius: 18px;
+    box-shadow: 0 30px 80px rgba(6, 2, 12, 0.6);
+  }
+  @media (max-width: 640px) { .sheet { padding: 36px 20px 44px; border-radius: 12px; margin: 14px auto; } }
+
+  /* ===== Cover ===== */
+  .cover {
+    position: relative;
+    min-height: 100vh;
+    display: grid;
+    align-content: center;
+    color: var(--ink-on-plum);
+    padding: 72px 64px;
+    overflow: hidden;
+    background:
+      radial-gradient(1100px 600px at 80% -10%, rgba(125, 88, 208, 0.28), transparent 60%),
+      radial-gradient(800px 500px at 10% 110%, rgba(217, 170, 69, 0.14), transparent 60%),
+      var(--plum-0);
+  }
+  @media (max-width: 640px) { .cover { padding: 56px 20px; } }
+  .cover .stars { position: absolute; inset: 0; pointer-events: none; opacity: 0.9; }
+  .cover .stars i {
+    position: absolute; width: 2px; height: 2px; border-radius: 50%;
+    background: #fff; opacity: 0.55; box-shadow: 0 0 6px rgba(255,255,255,0.6);
+  }
+  .cover .mountains { position: absolute; left: 0; right: 0; bottom: 0; height: 32vh; min-height: 180px; pointer-events: none; opacity: 0.9; }
+  .cover > * { position: relative; }
+
+  .wordmark {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(34px, 5vw, 48px);
+    letter-spacing: -0.01em;
+    color: var(--ink-on-plum);
+    display: inline-flex; align-items: baseline;
+  }
+  .wordmark .me {
+    background: var(--gold-metal);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .cover .eyebrow { font-size: 15px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted-on-plum); margin: 12px 0 44px; }
+  .cover h1 {
+    font-size: clamp(40px, 7vw, 76px);
+    font-weight: 500;
+    line-height: 1.02;
+    max-width: 16ch;
+    margin-bottom: 22px;
+  }
+  .cover h1 .gold {
+    background: var(--gold-metal);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .cover .promise {
+    font-size: clamp(18px, 2.3vw, 23px);
+    color: var(--ink-on-plum-2);
+    max-width: 44ch;
+    line-height: 1.4;
+    margin-bottom: 44px;
+  }
+  .pillars {
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(4, 1fr);
+    margin-bottom: 44px;
+  }
+  @media (max-width: 820px) { .pillars { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 460px) { .pillars { grid-template-columns: 1fr; } }
+  .pillar {
+    background: rgba(26, 19, 37, 0.75);
+    border: 1px solid var(--plum-border);
+    border-top: 2px solid var(--gold);
+    border-radius: 14px;
+    padding: 18px 18px 16px;
+    backdrop-filter: blur(6px);
+  }
+  .pillar .ic { width: 28px; height: 28px; color: var(--gold-light); margin-bottom: 10px; }
+  .pillar h3 { font-size: 20px; margin-bottom: 6px; color: var(--ink-on-plum); }
+  .pillar p { font-size: 15px; color: var(--ink-on-plum-2); margin: 0; line-height: 1.45; }
+  .pull {
+    border-left: 3px solid var(--gold);
+    padding: 6px 0 6px 20px;
+    max-width: 60ch;
+    font-family: var(--serif);
+    font-size: clamp(18px, 2.2vw, 22px);
+    color: var(--ink-on-plum);
+    line-height: 1.4;
+  }
+  .pull small { display: block; font-family: var(--sans); font-size: 14px; color: var(--muted-on-plum); margin-top: 8px; }
+  .cover .foot { margin-top: 48px; font-size: 14px; color: var(--muted-on-plum); display: flex; gap: 18px; flex-wrap: wrap; }
+
+  /* ===== Reading pages ===== */
+  .toc { columns: 2; column-gap: 40px; font-size: 16px; }
+  @media (max-width: 560px) { .toc { columns: 1; } }
+  .toc ol { margin: 0; padding-left: 1.4em; }
+  .toc li { margin: 0.3em 0; break-inside: avoid; }
+  .toc a { text-decoration: none; color: var(--ink); }
+  .toc a:hover { color: var(--plum-text); }
+
+  section.chapter { padding-top: 40px; margin-top: 40px; border-top: 1px solid var(--rule); }
+  section.chapter:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+  .chapter-num { font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold-dark); font-weight: 600; margin-bottom: 8px; }
+  h2 { font-size: 36px; margin-bottom: 14px; color: var(--ink); }
+  h2 + .lead, .lead { font-size: 20px; color: var(--ink-2); max-width: var(--measure); margin-bottom: 26px; line-height: 1.45; }
+  h3 { font-size: 23px; margin: 30px 0 10px; color: var(--ink); }
+  h4 { font-size: 18px; font-family: var(--sans); font-weight: 700; margin: 18px 0 6px; color: var(--ink-2); }
+  .chapter p, .chapter li { max-width: var(--measure); }
+
+  .shot {
+    border: 1.5px dashed var(--plum-border-strong);
+    border-radius: 12px;
+    background: repeating-linear-gradient(135deg, var(--paper-2) 0 10px, var(--paper) 10px 20px);
+    color: var(--ink-muted);
+    font-size: 14px;
+    padding: 26px 18px;
+    text-align: center;
+    margin: 18px 0 22px;
+    break-inside: avoid;
+  }
+  .shot::before { content: "Screenshot · "; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: 12px; color: var(--gold-dark); }
+  .shot-img { margin: 20px 0 26px; break-inside: avoid; page-break-inside: avoid; }
+  .shot-img img {
+    display: block; width: 100%; height: auto;
+    border-radius: 12px;
+    border: 1px solid var(--rule);
+    box-shadow: 0 1px 2px rgba(34, 26, 46, 0.06), 0 10px 28px -12px rgba(34, 26, 46, 0.28);
+    background: var(--paper-2);
+  }
+  .shot-img.card-shot img { max-width: 860px; }
+  .shot-img figcaption { font-size: 14px; color: var(--ink-muted); margin-top: 10px; max-width: var(--measure); line-height: 1.45; }
+
+  .tip {
+    border-left: 3px solid var(--gold);
+    background: var(--paper-2);
+    padding: 12px 16px;
+    border-radius: 0 10px 10px 0;
+    margin: 18px 0;
+    max-width: var(--measure);
+    break-inside: avoid;
+  }
+  .tip strong:first-child { color: var(--gold-dark); }
+  .soon {
+    display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--plum-text); background: rgba(157, 122, 224, 0.18); border-radius: 999px; padding: 2px 9px; vertical-align: middle; margin-left: 6px;
+  }
+
+  table { border-collapse: collapse; width: 100%; font-size: 15.5px; margin: 14px 0 24px; break-inside: auto; }
+  thead th { text-align: left; font-weight: 700; color: var(--ink-2); border-bottom: 2px solid var(--plum-border-strong); padding: 8px 10px 8px 0; vertical-align: bottom; }
+  tbody td { border-bottom: 1px solid var(--rule); padding: 9px 10px 9px 0; vertical-align: top; }
+  tbody tr { break-inside: avoid; }
+  td:first-child, th:first-child { font-weight: 600; color: var(--ink); }
+  .compare td.yes { color: #2a7a4f; }
+  .compare td.yes::before { content: "✓ "; }
+  .wrap-table { overflow-x: auto; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 32px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 14px 0 22px; }
+  .card { border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; background: #fff; break-inside: avoid; }
+  .card h4 { margin: 0 0 6px; font-size: 17px; color: var(--plum-text); }
+  .card p { margin: 0; font-size: 15px; color: var(--ink-2); }
+
+  dl.faq dt { font-family: var(--serif); font-size: 21px; margin: 22px 0 6px; color: var(--ink); }
+  dl.faq dd { margin: 0; max-width: var(--measure); }
+
+  .fine { font-size: 14px; color: var(--ink-muted); }
+  .back { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--rule); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; color: var(--ink-muted); font-size: 14px; }
+  .back .wordmark { font-size: 24px; color: var(--ink); }
+
+  /* ===== Print ===== */
+  @page { size: auto; margin: 16mm 14mm; }
+  @media print {
+    html, body { background: #fff !important; }
+    body { font-size: 11pt; line-height: 1.45; }
+    .page { max-width: none; padding: 0; }
+    .sheet { box-shadow: none; border-radius: 0; margin: 0; padding: 0; background: #fff; }
+    .cover {
+      min-height: 0; height: auto; border-radius: 0; padding: 18mm 16mm 22mm;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      page-break-after: always; break-after: page;
+    }
+    .cover .stars { display: none; }
+    .cover .mountains { height: 120px; }
+    .cover h1 { font-size: 40pt; margin-bottom: 14pt; }
+    .cover .eyebrow { margin-bottom: 24pt; }
+    .cover .promise { margin-bottom: 24pt; }
+    .pillars { margin-bottom: 24pt; }
+    .cover .foot { margin-top: 24pt; }
+    .cover .promise { font-size: 15pt; }
+    .pillar { backdrop-filter: none; background: #1a1325; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .pillar p { font-size: 10.5pt; }
+    .pillars { grid-template-columns: repeat(2, 1fr); }
+    .toc-sheet { page-break-after: always; break-after: page; }
+    section.chapter { page-break-before: always; break-before: page; border-top: 0; margin-top: 0; padding-top: 0; }
+    section.chapter.flow { page-break-before: auto; break-before: auto; padding-top: 24px; margin-top: 24px; border-top: 1px solid var(--rule); }
+    h2 { font-size: 24pt; }
+    h2 + .lead, .lead { font-size: 13pt; }
+    h3 { font-size: 15pt; page-break-after: avoid; break-after: avoid; }
+    h4 { page-break-after: avoid; break-after: avoid; }
+    .shot { padding: 14px; }
+    .shot-img img { box-shadow: none; border-radius: 6px; max-height: 60vh; width: auto; max-width: 100%; }
+    .shot-img figcaption { font-size: 9.5pt; }
+    table { font-size: 10pt; }
+    a { color: inherit; text-decoration: none; }
+    .no-print { display: none !important; }
+    .card { background: #fff; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ======================= COVER ======================= -->
+<header class="sheet cover" id="cover">
+  <div class="stars" aria-hidden="true">
+    <i style="left:8%;top:12%"></i><i style="left:14%;top:28%;opacity:.35"></i><i style="left:22%;top:9%"></i><i style="left:31%;top:19%;opacity:.4"></i>
+    <i style="left:44%;top:7%"></i><i style="left:53%;top:16%;opacity:.5"></i><i style="left:61%;top:5%"></i><i style="left:69%;top:22%;opacity:.35"></i>
+    <i style="left:77%;top:11%"></i><i style="left:84%;top:26%;opacity:.45"></i><i style="left:91%;top:8%"></i><i style="left:96%;top:19%;opacity:.4"></i>
+    <i style="left:5%;top:44%;opacity:.3"></i><i style="left:88%;top:41%;opacity:.35"></i><i style="left:95%;top:55%;opacity:.3"></i><i style="left:3%;top:62%;opacity:.3"></i>
+  </div>
+  <svg class="mountains" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+      <linearGradient id="m1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d1f78" stop-opacity=".55"/><stop offset="1" stop-color="#100b17" stop-opacity="0"/></linearGradient>
+      <linearGradient id="m2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9aa45" stop-opacity=".28"/><stop offset="1" stop-color="#100b17" stop-opacity="0"/></linearGradient>
+    </defs>
+    <path d="M0 300 L0 210 L180 90 L330 190 L470 110 L640 230 L800 120 L960 200 L1100 140 L1200 190 L1200 300 Z" fill="url(#m1)"/>
+    <path d="M0 300 L0 250 L260 170 L420 240 L560 180 L760 260 L900 200 L1060 250 L1200 220 L1200 300 Z" fill="url(#m2)"/>
+  </svg>
+
+  <div class="wordmark" aria-label="MemorMe">Memor<span class="me">Me</span></div>
+  <div class="eyebrow">A photo library that lives at home</div>
+
+  <h1>Every photo you've ever taken, <span class="gold">in one place you own.</span></h1>
+  <p class="promise">MemorMe gathers your photos from phones, old drives, scanned prints and the services you've used over the years, and keeps them on your own computer: easy to find, lovely to look back on, and never handed to the cloud.</p>
+
+  <div class="pillars">
+    <div class="pillar">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18v12H3z"/><path d="M3 11h18"/><circle cx="7" cy="15" r="1" fill="currentColor"/></svg>
+      <h3>Yours</h3>
+      <p>Your photos live on a drive you choose. Not on anyone's servers.</p>
+    </div>
+    <div class="pillar">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+      <h3>Private</h3>
+      <p>Faces, search and tags are worked out on your computer. Nothing is used to train anyone's AI.</p>
+    </div>
+    <div class="pillar">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h5l2-2h9v12H4z"/><path d="M8 13h8M12 10v6"/></svg>
+      <h3>Everything in one place</h3>
+      <p>Phones, SD cards, folders, drives, scans, Google and iCloud exports. Duplicates are sorted out for you.</p>
+    </div>
+    <div class="pillar">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-7-10a7 7 0 0 1 14 0c0 5.5-7 10-7 10z"/><path d="M9 11l2 2 4-4"/></svg>
+      <h3>Free to start</h3>
+      <p>Up to 500 photos free, everything included. A product key removes the limit. No monthly bill.</p>
+    </div>
+  </div>
+
+  <blockquote class="pull">
+    “How is it different from Google Photos?” Most cloud services keep your photos on their computers. MemorMe keeps them on yours.
+    <small>User guide · MemorMe 0.2.3 for Windows</small>
+  </blockquote>
+
+  <div class="foot">
+    <span>For people with photos everywhere</span>
+    <span>·</span>
+    <span>Made for families</span>
+    <span>·</span>
+    <span>No account, no subscription</span>
+  </div>
+</header>
+
+<!-- ======================= CONTENTS ======================= -->
+<main class="sheet">
+  <div class="toc-sheet">
+    <div class="chapter-num">Inside</div>
+    <h2 style="margin-bottom:18px">Ten minutes to know MemorMe</h2>
+    <p class="lead">The cover tells you what MemorMe is. The rest shows you how to use it, with the real names of the buttons and screens. Read it straight through, or jump to the part you need.</p>
+    <nav class="toc">
+      <ol>
+        <li><a href="#why">Why MemorMe</a></li>
+        <li><a href="#start">Getting started</a></li>
+        <li><a href="#import">Bringing in your photos</a></li>
+        <li><a href="#find">Finding anything</a></li>
+        <li><a href="#relive">Reliving</a></li>
+        <li><a href="#phone">Your phone</a></li>
+        <li><a href="#family">The family library</a></li>
+        <li><a href="#safe">Keeping it safe</a></li>
+        <li><a href="#privacy">Privacy in plain words</a></li>
+        <li><a href="#next">Coming soon</a></li>
+        <li><a href="#faq">Questions people ask</a></li>
+        <li><a href="#reference">Quick reference</a></li>
+      </ol>
+    </nav>
+    <div class="tip"><strong>Prefer pictures?</strong> <a href="how-memorme-works.html">How MemorMe works, in pictures</a> shows your phone, your home and your copies as little scenes you can tap.</div>
+  </div>
+
+  <!-- ======================= 1 WHY ======================= -->
+  <section class="chapter" id="why">
+    <div class="chapter-num">1</div>
+    <h2>Why MemorMe</h2>
+    <p class="lead">Most of us have photos in six places: a phone, an older phone in a drawer, a laptop, a box of prints, and a couple of online accounts. MemorMe is the one place that holds all of it, and it works a little differently from the services you may know.</p>
+
+    <h3>Your photos stay at home</h3>
+    <p>When you set MemorMe up, you choose where the library lives: a USB drive, an external disk, or a folder on your computer. Every photo you bring in is copied there, exactly as it was taken, and never changed. There is no account to create and nothing to upload. If you unplug the drive, your photos go with you.</p>
+
+    <h3>The clever parts happen on your computer</h3>
+    <p>MemorMe recognises faces, finds "the beach at sunset" when you type it, reads the words on a birthday card, sorts photos into events and trips, and spots duplicates. All of that runs on your own computer. Your pictures are not sent to anyone to be analysed, and they are never used to teach anyone's AI.</p>
+
+    <h3>Nothing is held hostage</h3>
+    <p>The free version takes up to 500 photos with every feature included, for as long as you like. A product key removes the limit. There is no monthly fee, and your library is a plain folder of your original files: if you ever stopped using MemorMe, your photos would still be right there, in ordinary folders, with their dates, places and names saved alongside them.</p>
+
+    <h3>Made for gathering</h3>
+    <p>Bring in a folder, a drive, a phone by cable, a camera's SD card, a box of scanned prints, or the "download your data" file from Google Photos, iCloud, Facebook, Instagram, Snapchat, Shutterfly or Amazon Photos. MemorMe skips what it already has, finds the original behind each copy, and fixes up dates and places along the way.</p>
+
+    <h3>MemorMe and cloud photo services</h3>
+    <p>Cloud services are convenient, and this comparison is meant to be fair. Here is how the two approaches differ in the ways that matter most.</p>
+    <div class="wrap-table">
+    <table class="compare">
+      <thead><tr><th></th><th>MemorMe</th><th>Most cloud photo services</th></tr></thead>
+      <tbody>
+        <tr><td>Where your photos are kept</td><td>On a drive you own, at home</td><td>On the service's servers</td></tr>
+        <tr><td>Who can look at them</td><td>You, and the family computers and phones you pair</td><td>You, and the service under its terms</td></tr>
+        <tr><td>Face recognition, search, tags</td><td>Worked out on your computer</td><td>Worked out on the service's computers</td></tr>
+        <tr><td>Used to train AI</td><td>Never</td><td>Depends on the service and its terms</td></tr>
+        <tr><td>Cost</td><td>Free up to 500 photos; a product key for more, no monthly fee</td><td>Usually a monthly fee once free storage is full</td></tr>
+        <tr><td>Works without the internet</td><td>Yes, for everything except a few things you can turn on</td><td>Mostly not</td></tr>
+        <tr><td>Getting your photos out</td><td>They are already in ordinary folders</td><td>Usually a "download your data" request</td></tr>
+        <tr><td>If your house floods</td><td>Only a copy kept somewhere else saves them (see <a href="#safe">Keeping it safe</a>)</td><td>The service's copies are elsewhere</td></tr>
+        <tr><td>Phone and tablet</td><td>Through your own computer, which must be on</td><td>Any time, from anywhere</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="fine">That last pair of rows is the honest trade. A cloud service keeps copies in far-away buildings; with MemorMe, keeping a second copy is your job, and the app helps you do it.</p>
+  </section>
+
+  <!-- ======================= 2 GETTING STARTED ======================= -->
+  <section class="chapter" id="start">
+    <div class="chapter-num">2</div>
+    <h2>Getting started</h2>
+    <p class="lead">Three steps: install, choose a drive, bring in a first folder. Ten minutes, and the rest happens in the background.</p>
+
+    <h3>1. Install</h3>
+    <p>MemorMe runs on Windows. Run the installer, <span class="ui">MemorMe-Setup</span>, and it puts everything in place; nothing else needs installing. If Windows shows a "protected your PC" message because MemorMe is new to it, choose <span class="ui">More info</span>, then <span class="ui">Run anyway</span>.</p>
+
+    <h3>2. Welcome</h3>
+    <p>The first screen asks how you want to begin:</p>
+    <ul>
+      <li><span class="ui">Continue free</span>: up to 500 photos, everything included. You can add a key any time in Settings.</li>
+      <li><span class="ui">Enter a product key</span>, if you have one.</li>
+      <li><span class="ui">Join your family's library</span>: someone at home already has MemorMe with the photos' drive, and you want to use theirs (see <a href="#family">The family library</a>).</li>
+    </ul>
+
+    <h3>3. Set up your drive</h3>
+    <p>Choose where your photo library will live: a flash drive, an external disk, a mirrored drive, or a folder on this computer. Nothing on the drive is erased or reformatted; MemorMe simply creates a <span class="ui">MemorMe</span> folder on it. Already have a MemorMe drive from another computer? Plug it in and choose <span class="ui">Already have a MemorMe drive?</span>.</p>
+    <figure class="shot-img"><img src="img/set-up-your-drive.webp" alt="Set up your drive: pick a plugged-in drive, or choose a folder, then name your library" loading="lazy" width="1440" height="900"><figcaption>Set up your drive: pick a plugged-in drive, or choose a folder, then name your library</figcaption></figure>
+
+    <h3>4. Bring in a first folder</h3>
+    <p>Open <span class="ui">Import</span> in the sidebar, click <span class="ui">Add folders…</span> and pick a folder of photos (or drag folders straight onto the window). Before anything starts, MemorMe tells you what it found, for example "1,240 photos and 86 videos (14.2 GB)". Then it copies them in, and quietly begins recognising faces, places and events in the background while you look around.</p>
+
+    <div class="tip"><strong>Smart search and faces need a one-time download.</strong> The first time you use search or People, MemorMe downloads its recognition models (about 600 MB) once. After that, everything works offline. Your photos are never part of that download.</div>
+
+    <h3>Finding your way around</h3>
+    <p>The sidebar is the whole map of MemorMe: <span class="ui">Suggestions</span>, <span class="ui">Library</span>, <span class="ui">Map</span>, <span class="ui">Events</span>, <span class="ui">Albums</span>, <span class="ui">People</span>, <span class="ui">Places</span> and <span class="ui">Import</span>, then <span class="ui">Hidden photos</span>, <span class="ui">Recently removed</span>, <span class="ui">Games</span>, and <span class="ui">Settings</span>. Press <kbd>?</kbd> at any time for every keyboard shortcut, and <kbd>Ctrl</kbd>+<kbd>Z</kbd> to undo your last change, anywhere.</p>
+    <figure class="shot-img"><img src="img/library.webp" alt="The Library, with the sidebar on the left and On this day at the top" loading="lazy" width="1440" height="900"><figcaption>The Library, with the sidebar on the left and On this day at the top</figcaption></figure>
+  </section>
+
+  <!-- ======================= 3 IMPORT ======================= -->
+  <section class="chapter" id="import">
+    <div class="chapter-num">3</div>
+    <h2>Bringing in your photos</h2>
+    <p class="lead">From everywhere, in any order, as many times as you like. MemorMe remembers what it already has, so nothing is ever added twice.</p>
+
+    <h3>Folders, files and old drives</h3>
+    <p>On the <span class="ui">Import</span> screen, <span class="ui">Add folders…</span> and <span class="ui">Add files…</span> take anything with photos in it: a backup folder, an old laptop's Pictures, a drawer-full of USB sticks. Tick <span class="ui">Include sub-folders</span> and let it run. Videos come in with the photos and live next to them.</p>
+
+    <h3>Your phone, by cable</h3>
+    <p>Plug your phone into the computer with its charging cable and unlock it (on an iPhone, tap <span class="ui">Trust</span> or <span class="ui">Allow</span>; on Android, choose <span class="ui">File transfer</span> or <span class="ui">Photos</span> if it asks). MemorMe looks through the phone and asks something like "Bring in the 214 new photos from your iPhone?" Click <span class="ui">Bring them in</span>.</p>
+    <p>Photos already in your library are skipped, even ones that came in another way, such as from an old phone backup: MemorMe recognises them by their name and size, so only what's really new comes over.</p>
+    <p>While it copies, you can see exactly how it's going: how many photos and how much so far, the speed, and about how long is left. A big video gets a bar of its own, so it never looks stuck. Large videos are copied last, on their own, so the rest isn't held up: your photos are already going into the library while the big ones finish. On the <span class="ui">Import</span> screen the phone shows under <span class="ui">In progress</span>; anywhere else it sits in the sidebar, and a card in the corner appears only when there's a question or it's done.</p>
+    <p>Keep the phone plugged in and unlocked until it says you can unplug it. Nothing on the phone is changed, and next time only the new photos come over.</p>
+    <div class="tip"><strong>iPhone tip.</strong> If some photos won't come over, open <span class="ui">Settings → Photos → Transfer to Mac or PC</span> on the iPhone and choose <span class="ui">Keep Originals</span>. It usually lets them through, and it's faster.</div>
+
+    <h3>SD cards and cameras</h3>
+    <p>Put a camera's memory card into the computer's card reader, or plug the camera in with its cable and turn it on. MemorMe notices it and asks first: "SD card · 312 new photos and videos (2.1 GB). Bring them in?" Click <span class="ui">Bring them in</span>; nothing comes in without that click. Photos already in your library, and ones you brought in from this card before, are skipped. The photos are copied straight off the card into your library, and nothing on the card is changed or deleted. When it says <span class="ui">Done. You can safely remove the card.</span>, take it out.</p>
+
+    <h3>Google Photos, iCloud, Facebook and the rest</h3>
+    <p>Under <span class="ui">Bring photos from…</span> there is a tile for each place your photos might be: <strong>Phone (USB)</strong>, <strong>SD card / camera</strong>, <strong>Google Photos</strong>, <strong>iPhone / iCloud</strong>, <strong>Facebook</strong>, <strong>Instagram</strong>, <strong>Snapchat</strong>, <strong>Shutterfly</strong>, <strong>Amazon Photos</strong> and <strong>OneDrive / Dropbox folder</strong>. Each opens a short, numbered guide written for people who don't live on computers, with a button that opens the right page in your browser.</p>
+    <p>Every one of these services lets you download a copy of your photos (Google calls it Takeout). MemorMe does the rest: it notices when the download starts, tells you there's nothing left for you to do, and when the file is complete it brings the photos in straight from the download, recovering the real dates, places and captions the service kept, and tidies the download away afterwards. If a Google Takeout export has albums, MemorMe offers to keep them.</p>
+    <figure class="shot-img"><img src="img/import.webp" alt="Import: the “Bring photos from…” tiles, and a folder of photos coming in under “In progress”" loading="lazy" width="1440" height="900"><figcaption>Import: the “Bring photos from…” tiles, and a folder of photos coming in under “In progress”</figcaption></figure>
+
+    <h3>What happens as photos come in</h3>
+    <ul>
+      <li><strong>Originals are kept exactly as they are.</strong> MemorMe copies each file into the library and never alters it. Edits, turns and names are kept separately.</li>
+      <li><strong>Duplicates are skipped.</strong> The same photo from two phones and a backup becomes one photo.</li>
+      <li><strong>Copies are grouped under their original.</strong> A crop, a filtered version, a screenshot of a photo, a resized copy someone sent back to you: MemorMe finds the original and asks you in <span class="ui">Suggestions</span> whether to group them. The best shot of a burst goes on top of its stack.</li>
+      <li><strong>Dates are rescued.</strong> From the camera's own record, from Google's notes, from the dates hidden in file names (WhatsApp, screenshots and others). A date is never invented from the day you downloaded a file.</li>
+      <li><strong>Places are named without the internet.</strong> Photos with a location get a town and country from a built-in list. Street-level addresses are an option you can turn on (see <a href="#privacy">Privacy</a>).</li>
+      <li><strong>Live Photos stay whole.</strong> An iPhone Live Photo or an Android motion photo is one photo again: press and hold <span class="ui">LIVE</span> to see it move.</li>
+      <li><strong>New photos say hello.</strong> The first time a newly imported photo comes on screen, a soft golden sheen passes over it, once, so you can spot what just came in.</li>
+      <li><strong>Who brought it in is remembered.</strong> In a family library, each photo shows who imported it.</li>
+    </ul>
+
+    <h3 id="scans">Old prints, negatives and scans</h3>
+    <p>Got a shoebox of prints, an envelope of negatives, and a few old SD cards in a drawer? This is how to turn them into a library you can enjoy. MemorMe doesn't drive a scanner itself: scan with the software that came with your scanner (or a scanning app), save to a folder, and bring that folder in. MemorMe takes it from there.</p>
+    <h4>Scan several prints at once</h4>
+    <p>Lay three or four prints on the scanner glass, with a little space between them, and scan them as one picture. When you open that scan, MemorMe says "This looks like 4 photos scanned together". Click <span class="ui">Split them</span>: each print is outlined, and you can click the <strong>x</strong> on an outline that isn't a photo, or drag across one it missed. Each print becomes a photo of its own, cut out and straightened, with the scan's date and place. The whole scan goes to <span class="ui">Hidden photos</span> (tick <span class="ui">Keep the whole scan in the Library too</span> if you'd rather keep it in view). For any other photo, the scissors button in the viewer, <span class="ui">Split into separate photos</span>, does the same by hand.</p>
+    <h4>Scan the back too</h4>
+    <p>If a print has writing on the back, scan the back straight after the front. MemorMe keeps it with its photo instead of in the Library: open the photo's info and you'll find <span class="ui">Back of this photo</span>. If it got one wrong, <span class="ui">It isn't a back</span> puts it back as a photo of its own.</p>
+    <h4>Say when they were taken</h4>
+    <p>A scan only knows the day it was scanned. After an import with scans, MemorMe asks <span class="ui">When were these taken?</span> (it's also a card in <span class="ui">Suggestions</span>, and in a scanned photo's info). Tick the photos from around the same time and type what you know: "June 14, 1987", "June 1987", "Summer 1992", "Christmas 1987", "1987" or "the 80s". A rough date is fine: the photos show as "1987" or "the 1980s" and simply stay out of On this day. If MemorMe read a date written on the back of a print, or on the photo itself, it shows it under the photo ("On the back: 1987"); click it to use it. It is never used unless you click.</p>
+    <h4>Negatives</h4>
+    <p>No film scanner? Put the negative on a lightbox (or a tablet showing a plain white screen) and photograph it straight on. In MemorMe, open it, click <span class="ui">Edit</span> (or press <kbd>E</kbd>), crop to just the frame, then choose <span class="ui">This is a negative</span> under <span class="ui">Old photos</span>. Colour and black-and-white negatives both work.</p>
+    <h4>Faded colour</h4>
+    <p>Prints from the 70s and 80s often turn red or yellow. <span class="ui">Restore faded colour</span>, also under <span class="ui">Old photos</span>, brings the colours back. Skip it on sepia and black-and-white prints: their brown tone is meant to be there.</p>
+    <h4>The rest of the care</h4>
+    <p><span class="ui">Suggestions</span> offers to turn the scans that came in sideways or upside down (untick any that are fine and press <span class="ui">Turn them</span>). <span class="ui">Place on map…</span> pins a whole batch to where it happened. In <span class="ui">Edit</span>, <span class="ui">Fix it</span>, crop, straighten, brightness, contrast, warmth and colour are there too. Your scan is never changed; <span class="ui">Back to the original</span> is always there, and everything can be undone from History.</p>
+    <h4>The story</h4>
+    <p>Add a caption (who, what, why it matters), record a <span class="ui">Spoken memory</span> in Grandma's own voice, and draw a box around a face MemorMe didn't find to say who it is.</p>
+    <div class="tip"><strong>Tip for a big box.</strong> Do one envelope or album page at a time: scan the prints several to a page, then their backs, into one folder named after the occasion ("Summer at the lake 1987"). Bring it in, split the scans, answer <span class="ui">When were these taken?</span>, and put them on the map. Ten minutes per envelope, and it's done forever. Old SD cards from the drawer go in the card reader: MemorMe skips anything you already have.</div>
+  </section>
+
+  <!-- ======================= 4 FIND ======================= -->
+  <section class="chapter" id="find">
+    <div class="chapter-num">4</div>
+    <h2>Finding anything</h2>
+    <p class="lead">Type what you remember. MemorMe understands what is in a photo, who is in it, where and when it was taken, and even the words written in it.</p>
+
+    <h3>Search</h3>
+    <p>The search box at the top of the <span class="ui">Library</span> takes ordinary words: <em>beach at sunset</em>, <em>June 2024</em>, <em>Christmas 2022</em>, <em>Sam's birthday</em>, <em>Grandma and Sam at the zoo</em>, <em>favorite photos of Sam</em>, <em>videos</em>, <em>last week</em>. It also finds the text in your photos: typing <em>lakeview diner</em> finds the photo of the diner's sign. Filter by <span class="ui">Photos · Videos</span> or <span class="ui">Favorites</span>, sort by date taken or place, and click <span class="ui">Save this search</span> to turn it into an album that fills itself (see Albums). Search a year, such as <em>2024</em>, and <span class="ui">2024 in review</span> is one click away.</p>
+    <figure class="shot-img"><img src="img/search-beach-favorites.webp" alt="A search for “beach at sunset” with the Favorites filter on" loading="lazy" width="1440" height="900"><figcaption>A search for “beach at sunset” with the Favorites filter on</figcaption></figure>
+
+    <h3>People and pets</h3>
+    <p><span class="ui">People</span> gathers faces into groups; give a group a name once and all their photos are named. MemorMe puts the little sparkle on anything it worked out by itself, and you can say <span class="ui">Not Sam</span> or <span class="ui">Not a face</span> to correct it. A stranger in the background? Under <span class="ui">Not Sam</span>, <span class="ui">Someone I don't know</span> hides them for good. When a child has grown so much that MemorMe made a "baby" group and a "now" group, it asks <span class="ui">Are these the same person?</span>; it never merges anyone on its own.</p>
+    <p>Add a birthday on a person's page (the year is optional) and MemorMe tells you how old they were in every photo: "Sam, age 4" in the viewer, "7 months" on the baby photos. <span class="ui">Growing up</span> plays their photos from the very first to the latest. Pets have their own row under the people: MemorMe finds the dogs, cats and other animals in your photos and suggests which pet is which.</p>
+
+    <h3>Places and the Map</h3>
+    <p><span class="ui">Places</span> lists where your photos were taken and groups the ones with no location so you can pin them in a few clicks. Save the places you keep coming back to as <span class="ui">Saved places</span> ("Home", "Grandma's house", "The lake"). <span class="ui">Map</span> shows every located photo as a pin; drag a rectangle to see everything inside it. For photos with no location at all, MemorMe may suggest one when it is very sure, from photos of the same trip taken just before and after; nothing moves until you click <span class="ui">Put them there</span>.</p>
+
+    <h3>Events and trips</h3>
+    <p><span class="ui">Events</span> sorts your photos into the days and outings they belong to, and groups days away from home into <span class="ui">Trips</span>. MemorMe suggests names from what the photos show, where they were taken and who is in them, such as "Beach day · Lakeview, July 2024"; choose <span class="ui">Use it</span>, <span class="ui">Edit</span> or <span class="ui">No thanks</span>. A name you typed yourself is never changed. Each event and trip has a slideshow and a <span class="ui">Photo book</span>, and you can merge events or group them into a trip. <span class="ui">Year in review</span> is on the Events screen too.</p>
+
+    <h3>Albums and favorites</h3>
+    <p>Point at any photo and click the heart, or press <kbd>F</kbd> in the viewer. <span class="ui">Albums</span> keeps <span class="ui">Favorites</span> at the top, then your own albums: photos for Grandma, prints to order, a photo book. Select photos and choose <span class="ui">Add to album</span> (or press <kbd>A</kbd>); drag to reorder, point at one for <span class="ui">Make cover</span>. <strong>Smart albums</strong> are saved searches that fill themselves: "last 30 days" keeps moving forward, and photos you import later join on their own. Collages you keep gather in their own <span class="ui">Collages</span> album.</p>
+
+    <h3>Suggestions</h3>
+    <p>The <span class="ui">Suggestions</span> screen is where MemorMe asks before it acts: copies to group under their original, event names to confirm, place guesses, children's faces to merge, sideways photos to turn, scanned prints to date, and a few tidy-ups: accidental shots (a pocket, a lens cap), one-second videos from a button pressed by mistake, and the blurry shots in a stack next to a sharp one. Nothing changes until you choose, and everything can be undone.</p>
+  </section>
+
+  <!-- ======================= 5 RELIVE ======================= -->
+  <section class="chapter" id="relive">
+    <div class="chapter-num">5</div>
+    <h2>Reliving</h2>
+    <p class="lead">A library is only worth having if you open it. MemorMe brings your photos back to you a little every day.</p>
+
+    <h3>On this day, and a collage a day</h3>
+    <p>At the top of the <span class="ui">Library</span>, <span class="ui">On this day</span> shows the best photos from today's date in earlier years, no screenshots, receipts or blurry shots, one photo per moment. It starts with a ready-made collage of the day's best moments, "3 years ago today · Lakeview", in one of fifteen styles: <strong>Classic</strong>, <strong>Snapshots</strong>, <strong>Film strip</strong>, <strong>Postcard</strong>, <strong>Mosaic</strong>, <strong>Gallery wall</strong>, <strong>Cinema</strong>, <strong>Journal</strong>, <strong>Cover story</strong>, <strong>Contact sheet</strong>, <strong>Minimal</strong>, <strong>Timeline</strong>, <strong>Triptych</strong>, <strong>Cascade</strong> and <strong>Then and now</strong>. Then and now puts the same day side by side across the years, always with something in common: the same person, pet or place, and it says which. It only appears when there is something in common.</p>
+    <p><span class="ui">Shuffle</span> picks other photos, <span class="ui">Another style</span> another look, and <span class="ui">Play</span> shows the photos full screen. Like one? <span class="ui">Keep it</span>: give it a name (the place and year are filled in for you) and press Enter. The collage goes into your library, dated beside its photos and in the <span class="ui">Collages</span> album, ready to send or print like any other photo. Nothing is kept unless you ask, and tomorrow brings a new one.</p>
+    <figure class="shot-img"><img src="img/on-this-day-postcard.webp" alt="On this day with the day’s collage, Postcard style" loading="lazy" width="1172" height="659"><figcaption>On this day with the day’s collage, Postcard style</figcaption></figure>
+
+    <h3>Your year in review</h3>
+    <p>From December to mid-January, <span class="ui">Your year in review</span> waits at the top of the Library: a collage for every month, the year in a few numbers ("312 days with photos · 41 places · Sam turned 4") and <span class="ui">Play the year</span>, the best photos month by month. Any year is there any time, from <span class="ui">Events → Year in review</span>, or by searching a year in the Library.</p>
+
+    <h3>Make a photo book</h3>
+    <p>A PDF ready to print, from an album (its <span class="ui">⋯</span> menu, <span class="ui">Make a photo book…</span>), an event or a trip (<span class="ui">Photo book</span>), or a whole year (<span class="ui">Make a photo book</span> in Year in review). It has a cover with the title and one photo, then pages of one to four photos with the date and place. Choose <span class="ui">8 × 8 in square</span> or <span class="ui">8.5 × 11 in</span>; it's made at print quality, and you save it where you like. Most photo-print shops take a PDF as it is.</p>
+
+    <h3>Birthdays and anniversaries</h3>
+    <p>On someone's birthday, a small card in the corner says "Sam turns 4 today", with a few photos and <span class="ui">Growing up</span>. Two days before, it gives you a heads-up, and on the anniversary of a trip or an event you named: "A year ago today: Lake weekend". Click it to go there. Each card comes once; turn them off in <span class="ui">Settings → Memories</span> if you prefer.</p>
+
+    <h3>Slideshows, and your memories while you're away</h3>
+    <p>Any photo, event, trip, album or search can play as a slideshow. Photos drift and zoom gently, a soft fade marks a new day, and a new year gets a line like "Autumn 2023 · Lakeview". Prefer it calmer? <span class="ui">Settings → Memories → Motion</span>: Calm, Lively or Still.</p>
+    <p>Turn on <span class="ui">Show my memories when the computer is idle</span> and, when nobody has touched the computer for a while (5, 10, 15 or 30 minutes, your choice), MemorMe fills the screen with your favorites and On this day. Touch a key or the mouse and you're right back where you were. <span class="ui">Try it now</span> shows what it looks like.</p>
+
+    <h3>Games</h3>
+    <p><span class="ui">Games</span> turns your own photos into play. <strong>Just for fun</strong>: <span class="ui">Photo quiz</span> (where was this? who is this? what year?), <span class="ui">Face reveal</span> (a face comes clear slowly; name them fast), <span class="ui">Memory match</span> (easy enough for the grandkids) and <span class="ui">Sliding puzzle</span>. <strong>Tidy up as you play</strong>: <span class="ui">Who's this?</span> shows a face without a name, and every answer names all their photos; <span class="ui">Where's this?</span> turns the places you keep returning to into saved places.</p>
+
+    <h3>Sending photos</h3>
+    <p>Select photos and choose <span class="ui">Send</span>: <span class="ui">Copy</span> them to paste into an email or a message, <span class="ui">Email</span> them from your mail app, or <span class="ui">Show in a folder</span> to put them on a USB stick. Choose <span class="ui">Email size</span> or <span class="ui">Full quality</span>; MemorMe shows how big they are and warns when it's too much for email. Your photos in MemorMe stay as they are.</p>
+
+    <h3>A little editing</h3>
+    <p>In the viewer, <span class="ui">Edit</span> (<kbd>E</kbd>) offers <span class="ui">Fix it</span>, the <span class="ui">Old photos</span> fixes (<span class="ui">This is a negative</span> and <span class="ui">Restore faded colour</span>), crop, straighten, brightness, contrast, warmth and colour. The original is never changed, and <span class="ui">Back to the original</span> is always there. Every change you make anywhere in MemorMe is in <span class="ui">History</span>, with undo.</p>
+  </section>
+
+  <!-- ======================= 6 PHONE ======================= -->
+  <section class="chapter" id="phone">
+    <div class="chapter-num">6</div>
+    <h2>Your phone</h2>
+    <p class="lead">MemorMe on your phone opens the library on your computer, wherever you are, without copying your photos anywhere.</p>
+
+    <h3>Pairing</h3>
+    <p>On the computer, open <span class="ui">Settings → Your phone</span> and scan the code with your phone's camera. Check that the same short code shows on both screens, allow it, and the phone is paired. Add MemorMe to your phone's Home Screen when it offers; it then opens like any other app. Up to five phones can be paired with one computer.</p>
+    <figure class="shot-img card-shot"><img src="img/your-phone.webp" alt="Settings → Your phone, with the pairing code to scan" loading="lazy" width="832" height="374"><figcaption>Settings → Your phone, with the pairing code to scan</figcaption></figure>
+
+    <h3>What you can do</h3>
+    <p>Look through <span class="ui">Library</span>, <span class="ui">People</span>, <span class="ui">Places</span>, <span class="ui">Events</span> and <span class="ui">Albums</span>, search, see On this day, and send or save any photo at full quality or copy it into a message. Your memories come along too: ages on the photos, birthday cards, <span class="ui">Growing up</span>, and today's collage with <span class="ui">Shuffle</span> and <span class="ui">Another style</span>. The heart works on the phone too; it is the only change the phone can make. Nothing is edited, deleted or added from the phone, so the library can't be changed by accident.</p>
+
+    <h3>How it stays private</h3>
+    <ul>
+      <li>Your photos travel in a <strong>private, locked tunnel</strong> between your computer and your phone, locked twice over with keys that only those two devices have. Nobody in between can open it, MemorMe included (see “How your phone finds your computer” below).</li>
+      <li>The phone keeps only tiny blurred placeholders; full pictures are held in its memory while you look, and wiped when MemorMe closes or locks.</li>
+      <li><span class="ui">Lock MemorMe</span> asks for your face, fingerprint or passcode when you open it, and after a few minutes in the background.</li>
+      <li><span class="ui">Remove location</span> is on when you send a photo from the phone: the place it was taken is removed from the copy, on the computer, before it leaves. The photo in your library keeps its location.</li>
+      <li>Your computer checks a few times a day that the phone app online is a genuine, signed MemorMe release before your phones use it.</li>
+    </ul>
+
+    <h3>How your phone finds your computer</h3>
+    <p>Think of an old telephone switchboard. Your phone wants to talk to your computer at home, but on the internet neither one knows where the other is. MemorMe uses <strong>Cloudflare</strong>, a company that runs a big part of the internet, as the operator at the switchboard.</p>
+    <ol>
+      <li><strong>The introduction.</strong> When you open MemorMe on your phone, the operator carries a sealed note to your computer: “this phone would like to talk to you”. There are no photos or names in it.</li>
+      <li><strong>Plugging in the wire.</strong> The operator plugs one end of a wire into your phone and the other end into your computer. Most of the time that's all it does, and the two talk straight to each other.</li>
+      <li><strong>When there's no straight line.</strong> Some home routers and phone networks don't allow a straight connection. Then the wire runs through Cloudflare's switchboard instead, so MemorMe still works.</li>
+      <li><strong>Either way, the wire is a locked tunnel.</strong> Everything is locked before it leaves your computer, with keys only your phone and your computer have. The operator can see that a call is happening and how big it is, never what's in it: no photos, names, places or searches.</li>
+    </ol>
+    <p>Cloudflare doesn't keep your photos, and MemorMe doesn't sell or share anything about you with them. They run MemorMe's small server and the switchboard; your photos stay on your computer.</p>
+    <p>See it as a picture: <a href="how-memorme-works.html">How MemorMe works, in pictures</a>.</p>
+
+    <h3>Good to know</h3>
+    <ul>
+      <li>Your photos live on your computer, so it has to be on, awake and running MemorMe. Closing the window is fine: with a phone paired, MemorMe keeps running quietly near the clock (<span class="ui">Keep MemorMe ready for your phone</span>). <span class="ui">Keep this computer awake while plugged in</span> stops it sleeping; the screen still turns off.</li>
+      <li>Away from Wi-Fi it uses mobile data; <span class="ui">Data Saving Mode</span> in MemorMe's Settings on your phone keeps that small.</li>
+      <li>MemorMe on your phone comes with a product key that includes it. The product key card in Settings says what yours includes.</li>
+    </ul>
+  </section>
+
+  <!-- ======================= 7 FAMILY ======================= -->
+  <section class="chapter" id="family">
+    <div class="chapter-num">7</div>
+    <h2>The family library</h2>
+    <p class="lead">One library for the whole household: up to five computers at home share the photos on one drive, over your home network only.</p>
+    <p>On the computer with the drive, open <span class="ui">Settings → Family library</span> and click <span class="ui">Add a computer</span>. It shows a 6-digit code. On the other computer, choose <span class="ui">Join your family's library</span> (on the Welcome screen, or in Settings) and type the code. Keep both computers on the same home network (Wi-Fi or cable) with MemorMe open; if Windows asks whether MemorMe may use your network, choose <span class="ui">Allow</span>.</p>
+    <p>From then on everyone can look, name, tidy up and bring photos in from their own computer. Photos the library already has are skipped, so sending is quick. Nothing goes through the internet. Each computer asks <span class="ui">Who uses this computer?</span>, so People shows who's who and each photo remembers who brought it in. Each computer in a family library needs its own product key.</p>
+    <p>A family computer can also keep a whole copy of the family library on its own drive (see <a href="#safe">Keeping it safe</a>).</p>
+    <figure class="shot-img card-shot"><img src="img/family-library.webp" alt="Settings → Family library: the computers in the family and “Add a computer”" loading="lazy" width="832" height="404"><figcaption>Settings → Family library: the computers in the family and “Add a computer”</figcaption></figure>
+  </section>
+
+  <!-- ======================= 8 SAFE ======================= -->
+  <section class="chapter" id="safe">
+    <div class="chapter-num">8</div>
+    <h2>Keeping it safe</h2>
+    <p class="lead">Owning your photos means looking after them. MemorMe is built so that mistakes are reversible, and so a second copy is easy.</p>
+
+    <h3>What protects you every day</h3>
+    <ul>
+      <li><strong>Originals are never changed.</strong> Turning, cropping, fixing and naming are kept beside the photo, never written into it.</li>
+      <li><strong>Recently removed.</strong> Photos you remove wait there for 30 days, so nothing is gone by accident. <span class="ui">Restore</span> brings them back; after 30 days they're deleted for good and the space is freed.</li>
+      <li><strong>Hidden photos.</strong> Out of every screen, but still on your computer, one click from coming back.</li>
+      <li><strong>History and undo.</strong> Every change you make is in History with an Undo, and <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes the newest one. Things MemorMe worked out by itself carry a sparkle, and a click puts them right.</li>
+      <li><strong>Your library is a plain folder.</strong> Inside it are your original files, with their dates, places and names saved beside them in a form other programs can read. Copy that folder to another drive and you have a complete copy; MemorMe opens it with <span class="ui">Already have a MemorMe drive?</span>.</li>
+    </ul>
+
+    <h3>Three copies</h3>
+    <p><span class="ui">Settings → Keep a copy</span> starts with three steps, each with a green check when it's done:</p>
+    <ol>
+      <li><strong>Your library</strong>, open and looked after.</li>
+      <li><strong>A copy at home</strong>, on another drive or a family computer, so one worn-out drive can't take your photos.</li>
+      <li><strong>A copy away from home</strong>, so a fire or flood at home can't take everything.</li>
+    </ol>
+
+    <h3>A copy on another drive</h3>
+    <p>Click <span class="ui">Choose a drive…</span> and pick a USB drive or a second disk (not the library's own). MemorMe makes a complete copy of the library there: every photo and video, and the library itself, with names, albums, edits and History. Then it follows every change within seconds. Once a week it reads part of the copy back to be sure it's sound. It tells you plainly when the drive has been unplugged for a while ("Plug in the drive so it can catch up") or is nearly full. <span class="ui">Copy now</span> and <span class="ui">Check the copy</span> are there if you want them.</p>
+    <p>If the library's drive ever fails, plug in the copy's drive and choose <span class="ui">Open the copy as your library…</span>. Everything is in it, and it becomes your library; then choose a new drive for its copy.</p>
+
+    <h3>A family computer keeping a copy</h3>
+    <p>In a family library, another family computer can keep the whole copy instead. On that computer, open <span class="ui">Settings → Keep a copy</span>, click <span class="ui">Keep a copy of the family library here…</span> and pick a drive. Everything is copied over your home network only, and new photos follow within seconds. The computer with the drive shows "Also kept on Study laptop · copied 2 minutes ago", and says so if that computer has been away for a while or its drive is nearly full. If the computer with the drive is ever lost, choose <span class="ui">Use this copy as the library</span> on the other one: the family library lives there from then on, and the other computers find it by themselves. One computer keeps a copy for now.</p>
+    <figure class="shot-img card-shot"><img src="img/keep-a-copy.webp" alt="Settings → Keep a copy: the three copies, with a copy at home just made (here on the library’s own disk, so it asks for a separate drive)" loading="lazy" width="832" height="701"><figcaption>Settings → Keep a copy: the three copies, with a copy at home just made (here on the library’s own disk, so it asks for a separate drive)</figcaption></figure>
+
+    <div class="tip"><strong>One copy at home protects against a worn-out drive. A copy somewhere else protects against fire and theft.</strong> Until MemorMe can do it for you (see <a href="#next">Coming soon</a>), a drive kept at a relative's house and refreshed when it visits is the simplest way; it never involves the internet.</div>
+  </section>
+
+  <!-- ======================= 9 PRIVACY ======================= -->
+  <section class="chapter" id="privacy">
+    <div class="chapter-num">9</div>
+    <h2>Privacy in plain words</h2>
+    <p class="lead">Your photos never leave your computer, except to your own paired phone, encrypted. Here is everything MemorMe ever sends anywhere, and what is never in it. The same table is in the app, under <span class="ui">Settings → Privacy → What MemorMe sends</span>.</p>
+    <div class="wrap-table">
+    <table>
+      <thead><tr><th>When</th><th>What goes out</th><th>To</th><th>Never in it</th></tr></thead>
+      <tbody>
+        <tr><td>You enter or renew a product key</td><td>The key, an anonymous computer code, the app version</td><td>MemorMe's server</td><td>Your name, your photos</td></tr>
+        <tr><td>MemorMe checks for updates</td><td>A request for the latest version's details</td><td>The update service</td><td>Anything about your photos</td></tr>
+        <tr><td>You open the Map</td><td>Which map squares to show</td><td>OpenStreetMap</td><td>Your photos</td></tr>
+        <tr><td>You search for a place or look up a street address (only with <span class="ui">Online features</span> on; off by default)</td><td>The place you typed, or that photo's coordinates</td><td>OpenStreetMap's place service</td><td>The photo; anything at a home, workplace or school</td></tr>
+        <tr><td>You use search or faces for the first time</td><td>A download request for the recognition models</td><td>The model hosts</td><td>Your photos</td></tr>
+        <tr><td>You send a report</td><td>What you wrote, the app version, your key or an anonymous computer code, a screenshot only if you add one</td><td>MemorMe's server</td><td>Your photos, unless you add a screenshot</td></tr>
+        <tr><td>Your phone connects</td><td>A sealed "let's connect" note</td><td>MemorMe's server (run on Cloudflare), which passes it on unread</td><td>Your photos, file names, places, searches</td></tr>
+        <tr><td>Your phone looks at photos</td><td>Pictures, files and lists, encrypted twice</td><td>Your phone, directly or through Cloudflare's relay, which can't read them</td><td>—</td></tr>
+        <tr><td>A few times a day while phones can connect</td><td>A download of MemorMe's own phone app files, to check they're genuine</td><td>The phone app's web address</td><td>Anything about you</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>Everything else, including recognising faces, understanding what's in a photo, reading the words in it, naming towns from a photo's location, grouping events, finding duplicates, splitting and dating scans, the family library and the copy on another drive or family computer, happens on your own computer and your home network. Nothing about your photos is used to train anyone's AI, MemorMe's included.</p>
+    <p class="fine">MemorMe's server keeps random IDs for your computer and phones, when they last connected, and how much relay data was used this month: no names, photos, places or network addresses. It's all deleted when you stop using MemorMe on phones, or after 180 days without use.</p>
+  </section>
+
+  <!-- ======================= 10 NEXT ======================= -->
+  <section class="chapter flow" id="next">
+    <div class="chapter-num">10</div>
+    <h2>Coming soon</h2>
+    <p class="lead">Being built now.</p>
+    <div class="cards">
+      <div class="card"><h4>A copy away from home <span class="soon">soon</span></h4><p>Keep a copy of your library with family across town who also use MemorMe. It is locked before it leaves your computer, so they keep it safe without being able to look at it, and you set it up by sharing a backup code. That fills in the third of the <a href="#safe">three copies</a>.</p></div>
+    </div>
+  </section>
+
+  <!-- ======================= 11 FAQ ======================= -->
+  <section class="chapter" id="faq">
+    <div class="chapter-num">11</div>
+    <h2>Questions people ask</h2>
+    <dl class="faq">
+      <dt>How is it different from Google Photos?</dt>
+      <dd>Google Photos keeps your photos on Google's computers and does its clever work there. MemorMe keeps your photos on a drive you own and does the clever work on your own computer. Nobody else sees your photos, nothing is used to train anyone's AI, and there is no monthly fee. The trade-off is that you look after the copies, and your phone sees the library through your computer, so the computer has to be on. The comparison table in <a href="#why">Why MemorMe</a> has the detail.</dd>
+
+      <dt>Is it free?</dt>
+      <dd>Yes, up to 500 photos (a video counts as one), with every feature included and no time limit. A product key removes the limit; there is no subscription to keep paying, and a key can be moved to a new computer. Photos already in your library are never locked away, even if a key is removed later. The family library needs a key on each computer, and some keys include MemorMe on your phone; the product key card in Settings says what yours includes.</dd>
+
+      <dt>Does it need the internet?</dt>
+      <dd>No, for almost everything. Bringing photos in, search, faces, places, events, slideshows and games all work with the cable unplugged. The internet is used for a handful of things, all listed in <a href="#privacy">Privacy in plain words</a>: activating a product key the first time, checking for updates, the one-time model download, the map's background squares, your phone, and the optional web place search, which is off unless you turn it on.</dd>
+
+      <dt>What if my computer dies?</dt>
+      <dd>Your library is on the drive you chose, so plug that drive into another computer, install MemorMe and choose <span class="ui">Already have a MemorMe drive?</span>: everything is there, including names, albums and history. If that drive is the one that failed, the copy from <span class="ui">Settings → Keep a copy</span> takes its place: <span class="ui">Open the copy as your library…</span>. That's why we recommend setting up a copy on the first day.</dd>
+
+      <dt>Can MemorMe scan my prints?</dt>
+      <dd>It doesn't drive the scanner, but it does the rest. Scan several prints at a time with your scanner's own software, bring the folder in, and MemorMe splits each scan into separate photos, keeps the backs of prints with their fronts, lets you date a whole batch even if all you know is "the 80s", turns sideways scans the right way up, and fixes negatives and faded colour. See <a href="#scans">Old prints, negatives and scans</a>.</dd>
+
+      <dt>Does it change my photos?</dt>
+      <dd>Never. Every original is copied into the library and left exactly as it was. Turns, crops, light and colour fixes, names and dates are all kept beside the photo and can be undone. Even a split scan stays whole, in Hidden photos.</dd>
+
+      <dt>Can I use it on a Mac, or in another language?</dt>
+      <dd>Not yet. MemorMe is for Windows, in English.</dd>
+
+      <dt>Where do I get help or send an idea?</dt>
+      <dd>In the sidebar, <span class="ui">Report a problem</span> (or <span class="ui">Feedback</span> with a product key) sends your words to the developer. It never includes your photos unless you choose to attach a screenshot.</dd>
+    </dl>
+  </section>
+
+  <!-- ======================= 12 REFERENCE ======================= -->
+  <section class="chapter" id="reference">
+    <div class="chapter-num">12</div>
+    <h2>Quick reference</h2>
+    <h3>The sidebar</h3>
+    <div class="grid2">
+      <p><strong>Suggestions</strong> — what MemorMe found and wants you to confirm.</p>
+      <p><strong>Library</strong> — every photo, search, On this day.</p>
+      <p><strong>Map</strong> — your located photos as pins.</p>
+      <p><strong>Events</strong> — days, outings, trips and Year in review.</p>
+      <p><strong>Albums</strong> — Favorites, your albums, smart albums, kept collages.</p>
+      <p><strong>People</strong> — who's who, birthdays, pets.</p>
+      <p><strong>Places</strong> — where photos were taken; pin the ones without a place.</p>
+      <p><strong>Import</strong> — bring photos in from anywhere: folders, phones, SD cards, online services.</p>
+      <p><strong>Hidden photos</strong> — out of sight, still kept.</p>
+      <p><strong>Recently removed</strong> — 30 days to change your mind.</p>
+      <p><strong>Games</strong> — play with your own photos.</p>
+      <p><strong>Settings</strong> — product key, keep a copy, family library, memories, your phone, privacy.</p>
+    </div>
+    <h3>Keys worth knowing</h3>
+    <div class="wrap-table">
+    <table>
+      <tbody>
+        <tr><td><kbd>?</kbd></td><td>Every keyboard shortcut</td></tr>
+        <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td>Undo your last change, anywhere</td></tr>
+        <tr><td><kbd>F</kbd></td><td>Favorite (the heart)</td></tr>
+        <tr><td><kbd>A</kbd></td><td>Add to album</td></tr>
+        <tr><td><kbd>E</kbd></td><td>Edit the photo</td></tr>
+        <tr><td><kbd>Space</kbd></td><td>Play or pause a video</td></tr>
+        <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Previous and next, through every shot of a stack</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Close the viewer or the slideshow</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p class="fine">Sample photos in the screenshots: a demo library of CC0 stock photos from Unsplash (via Wikimedia Commons), by Brooke Cagle, Annie Spratt, Tim Mossholder, Khürt Williams, Bruno Nascimento, Yanko Peyankov, Erik-Jan Leusink, Justin Veenema, Nicolai Berntsen, Rafael Leão, Bagus Ghufron and other photographers, with thanks. The names, dates and places were added for the demo. <a href="img/CREDITS.md">Every photo and its source</a>.</p>
+
+    <div class="back">
+      <span class="wordmark">Memor<span class="me">Me</span></span>
+      <span>Your photos. Your computer. Your family.</span>
+      <span>Guide for version 0.2.3 · Windows</span>
+    </div>
+  </section>
+</main>
+</div>
+</body>
+</html>
