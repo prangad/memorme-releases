@@ -102,3 +102,10 @@ photographers anyway, with thanks. Dates and places in the demo library were add
 | IMG_1644.jpg | Happy daughter (Unsplash) | Michael Dam | CC0 1.0 | <https://commons.wikimedia.org/wiki/File:Happy_daughter_(Unsplash).jpg> |
 | IMG_1651.jpg | Baby with smile in the morning (Unsplash) | Caroline Hernandez | CC0 1.0 | <https://commons.wikimedia.org/wiki/File:Baby_with_smile_in_the_morning_(Unsplash).jpg> |
 | IMG_1658.jpg | Going fishing (Unsplash) | Les Anderson | CC0 1.0 | <https://commons.wikimedia.org/wiki/File:Going_fishing_(Unsplash).jpg> |
+
+## The "old prints" in the scans chapter
+
+The scans in `scan-split.webp`, `scan-when.webp` and `scan-old-photos.webp` were made from photos already listed
+above, not new ones: IMG_1021.jpg, IMG_1098.jpg, IMG_1105.jpg and IMG_1175.jpg (four prints on one scan) and
+IMG_1168.jpg (the faded print, mirrored). They were cropped, faded to red and yellow, given print borders and laid
+on a plain scanner bed; the writing on the back ("Summer 1987, at the lake") was added for the demo.
